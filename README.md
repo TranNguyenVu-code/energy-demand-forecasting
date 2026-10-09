@@ -271,7 +271,7 @@ real data.
 
 The Streamlit app starts immediately from a bundled one-year (8,760-row) sample sourced from Kaggle. Set `USE_FULL_KAGGLE_DATA=true` to fetch and use the complete live dataset through the Kaggle API; configure either `KAGGLE_API_TOKEN` or a `[kaggle]` secrets section containing username and key.
 
-- Repository: <https://github.com/nhamhhung/energy-demand-forecasting>
-- Report: <https://nhamhung.github.io/energy-demand-forecasting/>
+- Repository: <https://github.com/TranNguyenVu-code/energy-demand-forecasting>
+- Report: <https://trannguyenvu-code.github.io/energy-demand-forecasting/>
 - Streamlit: <https://energy-demand-forecasting.streamlit.app>
 - Fork setup: [docs/SETUP_AND_DEPLOYMENT.md](docs/SETUP_AND_DEPLOYMENT.md)
