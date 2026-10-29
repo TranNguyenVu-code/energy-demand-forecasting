@@ -7,25 +7,16 @@ generation mix (nuclear, wind, hydro, oil & gas, coal, solar, biomass).
 
 ## Why this dataset
 
-I originally built this project on US grid data (PJM Interconnection),
-then switched to this Romanian dataset
+This project uses Romania's hourly consumption-and-production dataset
 (`stefancomanita/hourly-electricity-consumption-and-production` on
-Kaggle) specifically because the generation-mix breakdown is genuinely
-useful, interesting data — it lets me ask whether recent generation mix
-carries forecasting signal, and it comes with its own real
-energy-transition story (mean solar output roughly doubled between 2023
-and 2025).
+Kaggle) to test whether recent generation mix carries forecasting
+signal and to examine changes in renewable electricity production.
 
 **This dataset is live and continuously updated** — checked directly,
 an earlier download had 46,002 rows through April 2024; the version
 used here has 62,810 rows through March 2026, with older rows
 unchanged. Every number quoted in this project reflects one snapshot,
 not a fixed, versioned file — see `config.py`'s module docstring.
-
-I still couldn't find a real, public, hourly demand dataset for
-Vietnam's own grid — checked directly, EVN's public data releases are
-highly aggregated. See `report/report.qmd`'s Discussion section for
-what a genuine Vietnam version would actually need.
 
 ## Prerequisites
 
@@ -146,12 +137,9 @@ naive seasonal baseline (~7.8% MAPE) by a wide margin. See
 
 ## What this project deliberately doesn't do
 
-No weather data, a different climate/market structure than Vietnam
-(Romania's demand is winter-heating-dominant, likely the opposite shape
-from Vietnam's), and the 2024-2025 test-period numbers are partly
-measured against linearly-interpolated (not fully real) data.
-`report/report.qmd`'s Discussion section covers what a real,
-Vietnam-specific version would need.
+Weather observations are not included, and outage gaps require linear
+interpolation. Results apply to Romania's grid and the evaluated period.
+See the report's Discussion section for limitations and future work.
 
 ## Get the data
 

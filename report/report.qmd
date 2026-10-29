@@ -1,7 +1,7 @@
 ---
 title: "Forecasting Electricity Demand"
 subtitle: "A worked case study in time-series forecasting, with a real generation-mix leakage trap"
-author: "Your Name"
+author: "Tran Nguyen Vu"
 date: today
 format:
   html:
@@ -60,34 +60,22 @@ plt.rcParams.update({
 
 ## Introduction
 
-I built this project to predict hourly electricity demand
-(`Consumption`, megawatts) for Romania's national grid, using real,
-published data from 2019 onward, together with its generation mix
-(nuclear, wind, hydro, oil & gas, coal, solar, biomass). I picked demand
-forecasting as a deliberately different kind of project for this
-portfolio: every other project treats each row as independent, while
-this one is a **time series**, where the order of the rows *is* the
-problem and a shuffled train/test split would quietly leak.
+This project predicts hourly electricity demand (`Consumption`,
+megawatts) for Romania's national grid, using published data from 2019
+onward together with its generation mix (nuclear, wind, hydro, oil &
+gas, coal, solar, biomass). Demand is a **time series**: observations
+are ordered in time, so evaluation must preserve that order to avoid
+leaking future information into training.
 
-I originally built this project on US grid data (PJM Interconnection),
-then switched to this Romanian dataset specifically because the
-generation-mix breakdown is genuinely useful, interesting data the US
-version didn't have — it lets me ask whether recent generation mix
-carries any forecasting signal, and it comes with its own real
-energy-transition story.
+The generation-mix breakdown makes it possible to test whether recent
+production patterns carry forecasting signal and to examine changes
+in Romania's renewable electricity production.
 
 One thing worth flagging upfront: **this dataset is live and
 continuously updated** — checked directly, an earlier download had
 46,002 rows through April 2024, the version used here has 62,810 rows
 through March 2026, with older rows unchanged. Every number below
 reflects one snapshot, not a fixed, versioned file.
-
-I still couldn't find a real, public, hourly demand dataset for
-Vietnam's own grid. Romania is a different climate and market
-structure, but grid-scale demand forecasting is the same *kind* of
-problem regardless of country, and Romania's growing renewable share
-raises questions increasingly relevant to Vietnam's own energy
-transition too.
 
 ## Data
 
@@ -110,10 +98,9 @@ gaps = data.gap_lengths(df)
 print(f"{len(gaps)} separate gaps, longest: {gaps.max()} hours")
 ```
 
-Every duplicate falls on an October date at **3am** local time — the
-same Daylight Saving Time fall-back pattern as any DST-observing
-country, just an hour later on the clock than the US version of this
-project found, since Romania is in the Eastern European time zone.
+Every duplicate falls on an October date at **3am** local time,
+consistent with the Daylight Saving Time fall-back in Romania's
+Eastern European time zone.
 2019-2023 show exactly 1 missing hour per year (the spring-forward
 gap). **2024-2025 are a completely different story**: a single gap of
 **83 consecutive missing hours**, consistent with a real
@@ -160,13 +147,10 @@ plt.tight_layout()
 plt.show()
 ```
 
-A single evening peak (~8-9pm, ~7,300 MW) and overnight trough (~3-4am,
-~5,450 MW) — a cleaner single-peak daily shape than this project's
-original US version, which had a secondary morning bump. The monthly
-pattern is **winter-dominant, not bimodal**: demand peaks in
-January/February and troughs in May, with much less of a summer
-cooling bump than the US version showed — consistent with Romania's
-historically lower AC penetration.
+Demand has a single evening peak (~8-9pm, ~7,300 MW) and an
+overnight trough (~3-4am, ~5,450 MW). The monthly pattern is
+**winter-dominant**: demand peaks in January/February and troughs in
+May, with a smaller summer cooling peak.
 
 ```{python}
 renewable_share = frame[config.RENEWABLE_COLS].sum(axis=1) / frame["Production"]
@@ -367,44 +351,35 @@ season and weather, not that solar generation itself drives
 consumption. I'd want more than a SHAP ranking alone before treating
 this as more than a proxy effect.
 
-## Discussion: what this project can't do, and what a Vietnam version would need
+## Discussion: limitations and future work
 
 - **This dataset is live and not fully reproducible.** Every number
-  above reflects one snapshot; a fresh download will add rows without
-  changing historical ones, but the exact row counts and test-set
-  contents quoted here are tied to this specific download.
-- **The 2024-2025 outage gaps are patched with a rough approximation.**
-  An 83-hour linear interpolation can't recover real demand swings for
-  that stretch — evaluation numbers touching that period are measured
-  on partly reconstructed, not fully real, data.
-- **No weather data** — the sharp winter-heating seasonality is only
-  seen through the calendar, never an actual temperature reading.
-- **Different climate and market structure than Vietnam.** Romania's
-  winter-heating-dominant demand shape is close to the opposite of
-  Vietnam's likely summer-cooling-dominant shape. The *methodology*
-  transfers directly; the specific calendar, climate-driven
-  seasonality, and holiday structure would not.
-- **The renewable-share angle connects most directly to Vietnam's own
-  situation**: Vietnam's grid is going through its own fast solar and
-  wind buildout, with well-documented grid-stability and curtailment
-  challenges. A genuine Vietnam version of this analysis would need
-  Vietnam's own hourly generation-mix data, which I could not find in
-  public, granular form.
+  above reflects one snapshot; a fresh download adds rows, so the
+  quoted row counts and test-set contents are tied to this download.
+- **Outage gaps require approximate reconstruction.** An 83-hour
+  linear interpolation cannot recover real demand swings. Evaluation
+  touching these gaps uses partly reconstructed observations.
+- **Weather is not observed directly.** Calendar features capture
+  seasonal patterns but cannot represent individual temperature
+  changes. Adding weather observations could improve forecasts.
+- **Results apply to Romania's grid and the evaluated period.**
+  Changes in demand, generation capacity, or market conditions may
+  require retraining and renewed chronological evaluation.
+- **The role of lagged solar output needs further investigation.**
+  Its SHAP ranking suggests predictive value but does not establish
+  a causal relationship with consumption.
 
 ## Conclusion
 
-Switching from a frozen US demand series to this live Romanian
-consumption-and-production dataset paid off in ways beyond just having
-more columns: it forced a genuine leakage-trap decision (lagging every
-generation-mix feature), surfaced a real, previously-unseen
-data-quality problem (multi-hour 2024-2025 outage gaps, structurally
-different from the DST issue), and gave two honest negative/surprising
-results worth reporting on their own terms — the seasonal-decomposition
-feature added nothing once properly leakage-checked, and yesterday's
-solar output ranks surprisingly high in the final model's own
-explanation of itself, for reasons I can guess at but haven't proven.
-LightGBM's win over both classical regression and a neural-network
-baseline held up on this dataset exactly as it did on the original US
-version — a second, independent piece of evidence that the highest
-common instinct ("try a neural net") isn't automatically the right one
-for a tabular, well-feature-engineered forecasting problem like this.
+Romania's hourly consumption-and-production data supports demand
+forecasting while exposing practical modeling challenges: generation
+features must be lagged to avoid leakage, and multi-hour outage gaps
+need to be distinguished from routine DST artifacts.
+
+LightGBM outperformed the regression, Random Forest, and neural-network
+baselines in this evaluation. The seasonal-decomposition feature added
+no measurable benefit after leakage checks, while yesterday's solar
+output ranked highly in the model explanation. These findings support
+the value of chronological evaluation, explicit baselines, and careful
+feature engineering, while leaving the solar proxy effect as an open
+question.

@@ -6,7 +6,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="author" content="Your Name">
+<meta name="author" content="Tran Nguyen Vu">
 <meta name="dcterms.date" content="2026-09-30">
 
 <title>Forecasting Electricity Demand</title>
@@ -2526,7 +2526,7 @@ background-color: #3a5cad;
       <div>
       <div class="quarto-title-meta-heading">Author</div>
       <div class="quarto-title-meta-contents">
-               <p>Your Name </p>
+               <p>Tran Nguyen Vu </p>
             </div>
     </div>
       
@@ -2571,7 +2571,7 @@ background-color: #3a5cad;
   </ul></li>
   <li><a href="#final-chronological-holdout" id="toc-final-chronological-holdout" class="nav-link" data-scroll-target="#final-chronological-holdout"><span class="header-section-number">6</span> Final chronological holdout</a></li>
   <li><a href="#model-interpretability" id="toc-model-interpretability" class="nav-link" data-scroll-target="#model-interpretability"><span class="header-section-number">7</span> Model interpretability</a></li>
-  <li><a href="#discussion-what-this-project-cant-do-and-what-a-vietnam-version-would-need" id="toc-discussion-what-this-project-cant-do-and-what-a-vietnam-version-would-need" class="nav-link" data-scroll-target="#discussion-what-this-project-cant-do-and-what-a-vietnam-version-would-need"><span class="header-section-number">8</span> Discussion: what this project can’t do, and what a Vietnam version would need</a></li>
+  <li><a href="#discussion-limitations-and-future-work" id="toc-discussion-limitations-and-future-work" class="nav-link" data-scroll-target="#discussion-limitations-and-future-work"><span class="header-section-number">8</span> Discussion: limitations and future work</a></li>
   <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion"><span class="header-section-number">9</span> Conclusion</a></li>
   </ul>
 <div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="report.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
@@ -2588,10 +2588,10 @@ background-color: #3a5cad;
 
 <section id="introduction" class="level2" data-number="1">
 <h2 data-number="1" class="anchored" data-anchor-id="introduction"><span class="header-section-number">1</span> Introduction</h2>
-<p>I built this project to predict hourly electricity demand (<code>Consumption</code>, megawatts) for Romania’s national grid, using real, published data from 2019 onward, together with its generation mix (nuclear, wind, hydro, oil &amp; gas, coal, solar, biomass). I picked demand forecasting as a deliberately different kind of project for this portfolio: every other project treats each row as independent, while this one is a <strong>time series</strong>, where the order of the rows <em>is</em> the problem and a shuffled train/test split would quietly leak.</p>
-<p>I originally built this project on US grid data (PJM Interconnection), then switched to this Romanian dataset specifically because the generation-mix breakdown is genuinely useful, interesting data the US version didn’t have — it lets me ask whether recent generation mix carries any forecasting signal, and it comes with its own real energy-transition story.</p>
+<p>This project predicts hourly electricity demand (<code>Consumption</code>, megawatts) for Romania's national grid, using published data from 2019 onward together with its generation mix (nuclear, wind, hydro, oil &amp; gas, coal, solar, biomass). Demand is a <strong>time series</strong>: observations are ordered in time, so evaluation must preserve that order to avoid leaking future information into training.</p>
+<p>The generation-mix breakdown makes it possible to test whether recent production patterns carry forecasting signal and to examine changes in Romania's renewable electricity production.</p>
 <p>One thing worth flagging upfront: <strong>this dataset is live and continuously updated</strong> — checked directly, an earlier download had 46,002 rows through April 2024, the version used here has 62,810 rows through March 2026, with older rows unchanged. Every number below reflects one snapshot, not a fixed, versioned file.</p>
-<p>I still couldn’t find a real, public, hourly demand dataset for Vietnam’s own grid. Romania is a different climate and market structure, but grid-scale demand forecasting is the same <em>kind</em> of problem regardless of country, and Romania’s growing renewable share raises questions increasingly relevant to Vietnam’s own energy transition too.</p>
+
 </section>
 <section id="data" class="level2" data-number="2">
 <h2 data-number="2" class="anchored" data-anchor-id="data"><span class="header-section-number">2</span> Data</h2>
@@ -2625,7 +2625,7 @@ background-color: #3a5cad;
 78 separate gaps, longest: 83 hours</code></pre>
 </div>
 </div>
-<p>Every duplicate falls on an October date at <strong>3am</strong> local time — the same Daylight Saving Time fall-back pattern as any DST-observing country, just an hour later on the clock than the US version of this project found, since Romania is in the Eastern European time zone. 2019-2023 show exactly 1 missing hour per year (the spring-forward gap). <strong>2024-2025 are a completely different story</strong>: a single gap of <strong>83 consecutive missing hours</strong>, consistent with a real reporting/scraping outage in whatever live feed this dataset’s maintainer pulls from — not a calendar quirk. I fixed both the same way (average duplicates, linearly interpolate gaps against a strictly regular hourly index), but want to be upfront that interpolating an 83-hour gap is a much rougher approximation than the isolated 1-hour DST gaps — there’s no way to recover 83 hours of real demand swings from a straight line between two endpoints.</p>
+<p>Every duplicate falls on an October date at <strong>3am</strong> local time, consistent with the Daylight Saving Time fall-back in Romania's Eastern European time zone. 2019-2023 show exactly 1 missing hour per year (the spring-forward gap). <strong>2024-2025 are a completely different story</strong>: a single gap of <strong>83 consecutive missing hours</strong>, consistent with a real reporting/scraping outage in whatever live feed this dataset’s maintainer pulls from — not a calendar quirk. I fixed both the same way (average duplicates, linearly interpolate gaps against a strictly regular hourly index), but want to be upfront that interpolating an 83-hour gap is a much rougher approximation than the isolated 1-hour DST gaps — there’s no way to recover 83 hours of real demand swings from a straight line between two endpoints.</p>
 <div id="06ff9128" class="cell" data-execution_count="4">
 <details class="code-fold">
 <summary>Code</summary>
@@ -2686,7 +2686,7 @@ background-color: #3a5cad;
 </div>
 </div>
 </div>
-<p>A single evening peak (~8-9pm, ~7,300 MW) and overnight trough (~3-4am, ~5,450 MW) — a cleaner single-peak daily shape than this project’s original US version, which had a secondary morning bump. The monthly pattern is <strong>winter-dominant, not bimodal</strong>: demand peaks in January/February and troughs in May, with much less of a summer cooling bump than the US version showed — consistent with Romania’s historically lower AC penetration.</p>
+<p>Demand has a single evening peak (~8-9pm, ~7,300 MW) and an overnight trough (~3-4am, ~5,450 MW). The monthly pattern is <strong>winter-dominant</strong>: demand peaks in January/February and troughs in May, with a smaller summer cooling peak.</p>
 <div id="02835052" class="cell" data-execution_count="7">
 <details class="code-fold">
 <summary>Code</summary>
@@ -3021,19 +3021,20 @@ WITHOUT seasonal_24h: {&#39;mae&#39;: 258.6064, &#39;rmse&#39;: 424.0605, &#39;m
 </div>
 <p><code>lag_168h</code> outranks <code>lag_24h</code> here, matching the ACF finding above where the weekly echo was slightly stronger. The genuine surprise: <strong><code>Solar_lag_24h</code> lands in the top 10</strong>, ahead of <code>is_holiday</code>. I didn’t expect yesterday’s solar output to say much about today’s demand directly — my best guess is that it’s acting as an indirect proxy for season and weather, not that solar generation itself drives consumption. I’d want more than a SHAP ranking alone before treating this as more than a proxy effect.</p>
 </section>
-<section id="discussion-what-this-project-cant-do-and-what-a-vietnam-version-would-need" class="level2" data-number="8">
-<h2 data-number="8" class="anchored" data-anchor-id="discussion-what-this-project-cant-do-and-what-a-vietnam-version-would-need"><span class="header-section-number">8</span> Discussion: what this project can’t do, and what a Vietnam version would need</h2>
+<section id="discussion-limitations-and-future-work" class="level2" data-number="8">
+<h2 data-number="8" class="anchored" data-anchor-id="discussion-limitations-and-future-work"><span class="header-section-number">8</span> Discussion: limitations and future work</h2>
 <ul>
-<li><strong>This dataset is live and not fully reproducible.</strong> Every number above reflects one snapshot; a fresh download will add rows without changing historical ones, but the exact row counts and test-set contents quoted here are tied to this specific download.</li>
-<li><strong>The 2024-2025 outage gaps are patched with a rough approximation.</strong> An 83-hour linear interpolation can’t recover real demand swings for that stretch — evaluation numbers touching that period are measured on partly reconstructed, not fully real, data.</li>
-<li><strong>No weather data</strong> — the sharp winter-heating seasonality is only seen through the calendar, never an actual temperature reading.</li>
-<li><strong>Different climate and market structure than Vietnam.</strong> Romania’s winter-heating-dominant demand shape is close to the opposite of Vietnam’s likely summer-cooling-dominant shape. The <em>methodology</em> transfers directly; the specific calendar, climate-driven seasonality, and holiday structure would not.</li>
-<li><strong>The renewable-share angle connects most directly to Vietnam’s own situation</strong>: Vietnam’s grid is going through its own fast solar and wind buildout, with well-documented grid-stability and curtailment challenges. A genuine Vietnam version of this analysis would need Vietnam’s own hourly generation-mix data, which I could not find in public, granular form.</li>
+<li><strong>This dataset is live and not fully reproducible.</strong> Every number above reflects one snapshot; a fresh download adds rows, so the quoted row counts and test-set contents are tied to this download.</li>
+<li><strong>Outage gaps require approximate reconstruction.</strong> An 83-hour linear interpolation cannot recover real demand swings. Evaluation touching these gaps uses partly reconstructed observations.</li>
+<li><strong>Weather is not observed directly.</strong> Calendar features capture seasonal patterns but cannot represent individual temperature changes. Adding weather observations could improve forecasts.</li>
+<li><strong>Results apply to Romania's grid and the evaluated period.</strong> Changes in demand, generation capacity, or market conditions may require retraining and renewed chronological evaluation.</li>
+<li><strong>The role of lagged solar output needs further investigation.</strong> Its SHAP ranking suggests predictive value but does not establish a causal relationship with consumption.</li>
 </ul>
 </section>
 <section id="conclusion" class="level2" data-number="9">
 <h2 data-number="9" class="anchored" data-anchor-id="conclusion"><span class="header-section-number">9</span> Conclusion</h2>
-<p>Switching from a frozen US demand series to this live Romanian consumption-and-production dataset paid off in ways beyond just having more columns: it forced a genuine leakage-trap decision (lagging every generation-mix feature), surfaced a real, previously-unseen data-quality problem (multi-hour 2024-2025 outage gaps, structurally different from the DST issue), and gave two honest negative/surprising results worth reporting on their own terms — the seasonal-decomposition feature added nothing once properly leakage-checked, and yesterday’s solar output ranks surprisingly high in the final model’s own explanation of itself, for reasons I can guess at but haven’t proven. LightGBM’s win over both classical regression and a neural-network baseline held up on this dataset exactly as it did on the original US version — a second, independent piece of evidence that the highest common instinct (“try a neural net”) isn’t automatically the right one for a tabular, well-feature-engineered forecasting problem like this.</p>
+<p>Romania's hourly consumption-and-production data supports demand forecasting while exposing practical modeling challenges: generation features must be lagged to avoid leakage, and multi-hour outage gaps need to be distinguished from routine DST artifacts.</p>
+<p>LightGBM outperformed the regression, Random Forest, and neural-network baselines in this evaluation. The seasonal-decomposition feature added no measurable benefit after leakage checks, while yesterday's solar output ranked highly in the model explanation. These findings support the value of chronological evaluation, explicit baselines, and careful feature engineering, while leaving the solar proxy effect as an open question.</p>
 <!-- -->
 
 </section>
@@ -3504,412 +3505,391 @@ WITHOUT seasonal_24h: {&#39;mae&#39;: 258.6064, &#39;rmse&#39;: 424.0605, &#39;m
     }
   });
   </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb25" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> &quot;Forecasting Electricity Demand&quot;</span></span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="an">subtitle:</span><span class="co"> &quot;A worked case study in time-series forecasting, with a real generation-mix leakage trap&quot;</span></span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="an">author:</span><span class="co"> &quot;Your Name&quot;</span></span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> today</span></span>
-<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="an">format:</span></span>
-<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a><span class="co">  html:</span></span>
-<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a><span class="co">    theme:</span></span>
-<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a><span class="co">      light: flatly</span></span>
-<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a><span class="co">      dark: darkly</span></span>
-<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a><span class="co">    css: styles.css</span></span>
-<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a><span class="co">    toc: true</span></span>
-<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a><span class="co">    toc-location: left</span></span>
-<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a><span class="co">    toc-depth: 3</span></span>
-<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a><span class="co">    number-sections: true</span></span>
-<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a><span class="co">    code-fold: true</span></span>
-<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a><span class="co">    code-tools: true</span></span>
-<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a><span class="co">    code-copy: true</span></span>
-<span id="cb25-19"><a href="#cb25-19" aria-hidden="true" tabindex="-1"></a><span class="co">    title-block-banner: true</span></span>
-<span id="cb25-20"><a href="#cb25-20" aria-hidden="true" tabindex="-1"></a><span class="co">    fig-width: 7.5</span></span>
-<span id="cb25-21"><a href="#cb25-21" aria-hidden="true" tabindex="-1"></a><span class="co">    fig-height: 4.5</span></span>
-<span id="cb25-22"><a href="#cb25-22" aria-hidden="true" tabindex="-1"></a><span class="co">    embed-resources: true</span></span>
-<span id="cb25-23"><a href="#cb25-23" aria-hidden="true" tabindex="-1"></a><span class="co">    smooth-scroll: true</span></span>
-<span id="cb25-24"><a href="#cb25-24" aria-hidden="true" tabindex="-1"></a><span class="co">  pdf:</span></span>
-<span id="cb25-25"><a href="#cb25-25" aria-hidden="true" tabindex="-1"></a><span class="co">    toc: true</span></span>
-<span id="cb25-26"><a href="#cb25-26" aria-hidden="true" tabindex="-1"></a><span class="co">    number-sections: true</span></span>
-<span id="cb25-27"><a href="#cb25-27" aria-hidden="true" tabindex="-1"></a><span class="an">execute:</span></span>
-<span id="cb25-28"><a href="#cb25-28" aria-hidden="true" tabindex="-1"></a><span class="co">  echo: true</span></span>
-<span id="cb25-29"><a href="#cb25-29" aria-hidden="true" tabindex="-1"></a><span class="co">  warning: false</span></span>
-<span id="cb25-30"><a href="#cb25-30" aria-hidden="true" tabindex="-1"></a><span class="co">  message: false</span></span>
-<span id="cb25-31"><a href="#cb25-31" aria-hidden="true" tabindex="-1"></a><span class="an">jupyter:</span><span class="co"> energy-demand-forecasting</span></span>
-<span id="cb25-32"><a href="#cb25-32" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
-<span id="cb25-33"><a href="#cb25-33" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-36"><a href="#cb25-36" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
-<span id="cb25-37"><a href="#cb25-37" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: false</span></span>
-<span id="cb25-38"><a href="#cb25-38" aria-hidden="true" tabindex="-1"></a><span class="co">#| output: false</span></span>
-<span id="cb25-39"><a href="#cb25-39" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
-<span id="cb25-40"><a href="#cb25-40" aria-hidden="true" tabindex="-1"></a>sys.path.insert(<span class="dv">0</span>, <span class="st">&quot;../src&quot;</span>)</span>
-<span id="cb25-41"><a href="#cb25-41" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-42"><a href="#cb25-42" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb25-43"><a href="#cb25-43" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb25-44"><a href="#cb25-44" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
-<span id="cb25-45"><a href="#cb25-45" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-46"><a href="#cb25-46" aria-hidden="true" tabindex="-1"></a>PALETTE <span class="op">=</span> [<span class="st">&quot;#2c5cc5&quot;</span>, <span class="st">&quot;#5b8def&quot;</span>, <span class="st">&quot;#8fb4f2&quot;</span>, <span class="st">&quot;#e07a5f&quot;</span>, <span class="st">&quot;#81b29a&quot;</span>]</span>
-<span id="cb25-47"><a href="#cb25-47" aria-hidden="true" tabindex="-1"></a>sns.set_theme(style<span class="op">=</span><span class="st">&quot;whitegrid&quot;</span>, font<span class="op">=</span><span class="st">&quot;sans-serif&quot;</span>)</span>
-<span id="cb25-48"><a href="#cb25-48" aria-hidden="true" tabindex="-1"></a>plt.rcParams.update({</span>
-<span id="cb25-49"><a href="#cb25-49" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;figure.dpi&quot;</span>: <span class="dv">130</span>,</span>
-<span id="cb25-50"><a href="#cb25-50" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;axes.spines.top&quot;</span>: <span class="va">False</span>,</span>
-<span id="cb25-51"><a href="#cb25-51" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;axes.spines.right&quot;</span>: <span class="va">False</span>,</span>
-<span id="cb25-52"><a href="#cb25-52" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;axes.titleweight&quot;</span>: <span class="st">&quot;600&quot;</span>,</span>
-<span id="cb25-53"><a href="#cb25-53" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;axes.titlesize&quot;</span>: <span class="dv">13</span>,</span>
-<span id="cb25-54"><a href="#cb25-54" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;axes.labelsize&quot;</span>: <span class="dv">11</span>,</span>
-<span id="cb25-55"><a href="#cb25-55" aria-hidden="true" tabindex="-1"></a>})</span>
-<span id="cb25-56"><a href="#cb25-56" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb25-57"><a href="#cb25-57" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-58"><a href="#cb25-58" aria-hidden="true" tabindex="-1"></a><span class="fu">## Introduction</span></span>
-<span id="cb25-59"><a href="#cb25-59" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-60"><a href="#cb25-60" aria-hidden="true" tabindex="-1"></a>I built this project to predict hourly electricity demand</span>
-<span id="cb25-61"><a href="#cb25-61" aria-hidden="true" tabindex="-1"></a>(<span class="in">`Consumption`</span>, megawatts) for Romania&#39;s national grid, using real,</span>
-<span id="cb25-62"><a href="#cb25-62" aria-hidden="true" tabindex="-1"></a>published data from 2019 onward, together with its generation mix</span>
-<span id="cb25-63"><a href="#cb25-63" aria-hidden="true" tabindex="-1"></a>(nuclear, wind, hydro, oil &amp; gas, coal, solar, biomass). I picked demand</span>
-<span id="cb25-64"><a href="#cb25-64" aria-hidden="true" tabindex="-1"></a>forecasting as a deliberately different kind of project for this</span>
-<span id="cb25-65"><a href="#cb25-65" aria-hidden="true" tabindex="-1"></a>portfolio: every other project treats each row as independent, while</span>
-<span id="cb25-66"><a href="#cb25-66" aria-hidden="true" tabindex="-1"></a>this one is a **time series**, where the order of the rows *is* the</span>
-<span id="cb25-67"><a href="#cb25-67" aria-hidden="true" tabindex="-1"></a>problem and a shuffled train/test split would quietly leak.</span>
-<span id="cb25-68"><a href="#cb25-68" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-69"><a href="#cb25-69" aria-hidden="true" tabindex="-1"></a>I originally built this project on US grid data (PJM Interconnection),</span>
-<span id="cb25-70"><a href="#cb25-70" aria-hidden="true" tabindex="-1"></a>then switched to this Romanian dataset specifically because the</span>
-<span id="cb25-71"><a href="#cb25-71" aria-hidden="true" tabindex="-1"></a>generation-mix breakdown is genuinely useful, interesting data the US</span>
-<span id="cb25-72"><a href="#cb25-72" aria-hidden="true" tabindex="-1"></a>version didn&#39;t have — it lets me ask whether recent generation mix</span>
-<span id="cb25-73"><a href="#cb25-73" aria-hidden="true" tabindex="-1"></a>carries any forecasting signal, and it comes with its own real</span>
-<span id="cb25-74"><a href="#cb25-74" aria-hidden="true" tabindex="-1"></a>energy-transition story.</span>
-<span id="cb25-75"><a href="#cb25-75" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-76"><a href="#cb25-76" aria-hidden="true" tabindex="-1"></a>One thing worth flagging upfront: **this dataset is live and</span>
-<span id="cb25-77"><a href="#cb25-77" aria-hidden="true" tabindex="-1"></a>continuously updated** — checked directly, an earlier download had</span>
-<span id="cb25-78"><a href="#cb25-78" aria-hidden="true" tabindex="-1"></a>46,002 rows through April 2024, the version used here has 62,810 rows</span>
-<span id="cb25-79"><a href="#cb25-79" aria-hidden="true" tabindex="-1"></a>through March 2026, with older rows unchanged. Every number below</span>
-<span id="cb25-80"><a href="#cb25-80" aria-hidden="true" tabindex="-1"></a>reflects one snapshot, not a fixed, versioned file.</span>
-<span id="cb25-81"><a href="#cb25-81" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-82"><a href="#cb25-82" aria-hidden="true" tabindex="-1"></a>I still couldn&#39;t find a real, public, hourly demand dataset for</span>
-<span id="cb25-83"><a href="#cb25-83" aria-hidden="true" tabindex="-1"></a>Vietnam&#39;s own grid. Romania is a different climate and market</span>
-<span id="cb25-84"><a href="#cb25-84" aria-hidden="true" tabindex="-1"></a>structure, but grid-scale demand forecasting is the same *kind* of</span>
-<span id="cb25-85"><a href="#cb25-85" aria-hidden="true" tabindex="-1"></a>problem regardless of country, and Romania&#39;s growing renewable share</span>
-<span id="cb25-86"><a href="#cb25-86" aria-hidden="true" tabindex="-1"></a>raises questions increasingly relevant to Vietnam&#39;s own energy</span>
-<span id="cb25-87"><a href="#cb25-87" aria-hidden="true" tabindex="-1"></a>transition too.</span>
-<span id="cb25-88"><a href="#cb25-88" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-89"><a href="#cb25-89" aria-hidden="true" tabindex="-1"></a><span class="fu">## Data</span></span>
-<span id="cb25-90"><a href="#cb25-90" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-93"><a href="#cb25-93" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
-<span id="cb25-94"><a href="#cb25-94" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> energy_demand_forecasting <span class="im">import</span> config, data</span>
-<span id="cb25-95"><a href="#cb25-95" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-96"><a href="#cb25-96" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> data.load_raw()</span>
-<span id="cb25-97"><a href="#cb25-97" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;</span><span class="sc">{</span><span class="bu">len</span>(df)<span class="sc">}</span><span class="ss"> rows, </span><span class="sc">{</span>df[config.DATETIME_COL]<span class="sc">.</span><span class="bu">min</span>()<span class="sc">}</span><span class="ss"> to </span><span class="sc">{</span>df[config.DATETIME_COL]<span class="sc">.</span><span class="bu">max</span>()<span class="sc">}</span><span class="ss">&quot;</span>)</span>
-<span id="cb25-98"><a href="#cb25-98" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb25-99"><a href="#cb25-99" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-100"><a href="#cb25-100" aria-hidden="true" tabindex="-1"></a><span class="fu">### Two real data-quality issues — and they are not the same issue</span></span>
-<span id="cb25-101"><a href="#cb25-101" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-104"><a href="#cb25-104" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
-<span id="cb25-105"><a href="#cb25-105" aria-hidden="true" tabindex="-1"></a>dupes <span class="op">=</span> df[df[config.DATETIME_COL].duplicated(keep<span class="op">=</span><span class="va">False</span>)]</span>
-<span id="cb25-106"><a href="#cb25-106" aria-hidden="true" tabindex="-1"></a>full_range <span class="op">=</span> pd.date_range(df[config.DATETIME_COL].<span class="bu">min</span>(), df[config.DATETIME_COL].<span class="bu">max</span>(), freq<span class="op">=</span><span class="st">&quot;h&quot;</span>)</span>
-<span id="cb25-107"><a href="#cb25-107" aria-hidden="true" tabindex="-1"></a>missing <span class="op">=</span> full_range.difference(df[config.DATETIME_COL])</span>
-<span id="cb25-108"><a href="#cb25-108" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;</span><span class="sc">{</span><span class="bu">len</span>(dupes)<span class="sc">}</span><span class="ss"> duplicate timestamps, </span><span class="sc">{</span><span class="bu">len</span>(missing)<span class="sc">}</span><span class="ss"> missing timestamps&quot;</span>)</span>
-<span id="cb25-109"><a href="#cb25-109" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-110"><a href="#cb25-110" aria-hidden="true" tabindex="-1"></a>gaps <span class="op">=</span> data.gap_lengths(df)</span>
-<span id="cb25-111"><a href="#cb25-111" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;</span><span class="sc">{</span><span class="bu">len</span>(gaps)<span class="sc">}</span><span class="ss"> separate gaps, longest: </span><span class="sc">{</span>gaps<span class="sc">.</span><span class="bu">max</span>()<span class="sc">}</span><span class="ss"> hours&quot;</span>)</span>
-<span id="cb25-112"><a href="#cb25-112" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb25-113"><a href="#cb25-113" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-114"><a href="#cb25-114" aria-hidden="true" tabindex="-1"></a>Every duplicate falls on an October date at **3am** local time — the</span>
-<span id="cb25-115"><a href="#cb25-115" aria-hidden="true" tabindex="-1"></a>same Daylight Saving Time fall-back pattern as any DST-observing</span>
-<span id="cb25-116"><a href="#cb25-116" aria-hidden="true" tabindex="-1"></a>country, just an hour later on the clock than the US version of this</span>
-<span id="cb25-117"><a href="#cb25-117" aria-hidden="true" tabindex="-1"></a>project found, since Romania is in the Eastern European time zone.</span>
-<span id="cb25-118"><a href="#cb25-118" aria-hidden="true" tabindex="-1"></a>2019-2023 show exactly 1 missing hour per year (the spring-forward</span>
-<span id="cb25-119"><a href="#cb25-119" aria-hidden="true" tabindex="-1"></a>gap). **2024-2025 are a completely different story**: a single gap of</span>
-<span id="cb25-120"><a href="#cb25-120" aria-hidden="true" tabindex="-1"></a>**83 consecutive missing hours**, consistent with a real</span>
-<span id="cb25-121"><a href="#cb25-121" aria-hidden="true" tabindex="-1"></a>reporting/scraping outage in whatever live feed this dataset&#39;s</span>
-<span id="cb25-122"><a href="#cb25-122" aria-hidden="true" tabindex="-1"></a>maintainer pulls from — not a calendar quirk. I fixed both the same</span>
-<span id="cb25-123"><a href="#cb25-123" aria-hidden="true" tabindex="-1"></a>way (average duplicates, linearly interpolate gaps against a strictly</span>
-<span id="cb25-124"><a href="#cb25-124" aria-hidden="true" tabindex="-1"></a>regular hourly index), but want to be upfront that interpolating an</span>
-<span id="cb25-125"><a href="#cb25-125" aria-hidden="true" tabindex="-1"></a>83-hour gap is a much rougher approximation than the isolated 1-hour</span>
-<span id="cb25-126"><a href="#cb25-126" aria-hidden="true" tabindex="-1"></a>DST gaps — there&#39;s no way to recover 83 hours of real demand swings</span>
-<span id="cb25-127"><a href="#cb25-127" aria-hidden="true" tabindex="-1"></a>from a straight line between two endpoints.</span>
-<span id="cb25-128"><a href="#cb25-128" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-131"><a href="#cb25-131" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
-<span id="cb25-132"><a href="#cb25-132" aria-hidden="true" tabindex="-1"></a>frame <span class="op">=</span> data.load_clean_frame()</span>
-<span id="cb25-133"><a href="#cb25-133" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;</span><span class="sc">{</span><span class="bu">len</span>(frame)<span class="sc">}</span><span class="ss"> hours, strictly regular: </span><span class="sc">{</span>(frame.index.to_series().diff().dropna() <span class="op">==</span> pd.Timedelta(hours<span class="op">=</span><span class="dv">1</span>))<span class="sc">.</span><span class="bu">all</span>()<span class="sc">}</span><span class="ss">&quot;</span>)</span>
-<span id="cb25-134"><a href="#cb25-134" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb25-135"><a href="#cb25-135" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-136"><a href="#cb25-136" aria-hidden="true" tabindex="-1"></a><span class="fu">### Exploring the series and its generation mix</span></span>
-<span id="cb25-137"><a href="#cb25-137" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-140"><a href="#cb25-140" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
-<span id="cb25-141"><a href="#cb25-141" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">9</span>, <span class="fl">3.2</span>))</span>
-<span id="cb25-142"><a href="#cb25-142" aria-hidden="true" tabindex="-1"></a>frame[config.TARGET_COL].plot(ax<span class="op">=</span>ax, linewidth<span class="op">=</span><span class="fl">0.4</span>, color<span class="op">=</span>PALETTE[<span class="dv">0</span>])</span>
-<span id="cb25-143"><a href="#cb25-143" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">&quot;MW&quot;</span>)</span>
-<span id="cb25-144"><a href="#cb25-144" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
-<span id="cb25-145"><a href="#cb25-145" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-146"><a href="#cb25-146" aria-hidden="true" tabindex="-1"></a>corr <span class="op">=</span> frame.corr()</span>
-<span id="cb25-147"><a href="#cb25-147" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">7</span>, <span class="fl">5.5</span>))</span>
-<span id="cb25-148"><a href="#cb25-148" aria-hidden="true" tabindex="-1"></a>sns.heatmap(corr, annot<span class="op">=</span><span class="va">True</span>, fmt<span class="op">=</span><span class="st">&quot;.2f&quot;</span>, cmap<span class="op">=</span><span class="st">&quot;RdBu_r&quot;</span>, center<span class="op">=</span><span class="dv">0</span>, ax<span class="op">=</span>ax)</span>
-<span id="cb25-149"><a href="#cb25-149" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
-<span id="cb25-150"><a href="#cb25-150" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb25-151"><a href="#cb25-151" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-152"><a href="#cb25-152" aria-hidden="true" tabindex="-1"></a><span class="in">`Consumption`</span> correlates most with <span class="in">`Production`</span> (0.69, as expected) and</span>
-<span id="cb25-153"><a href="#cb25-153" aria-hidden="true" tabindex="-1"></a>the two dispatchable fossil sources, <span class="in">`Oil and Gas`</span> (0.50) and <span class="in">`Coal`</span></span>
-<span id="cb25-154"><a href="#cb25-154" aria-hidden="true" tabindex="-1"></a>(0.47) — the grid operator leans on fossil generation specifically to</span>
-<span id="cb25-155"><a href="#cb25-155" aria-hidden="true" tabindex="-1"></a>follow demand swings. <span class="in">`Solar`</span> is essentially uncorrelated with demand</span>
-<span id="cb25-156"><a href="#cb25-156" aria-hidden="true" tabindex="-1"></a>(-0.05), which is exactly what I&#39;d expect: solar output follows</span>
-<span id="cb25-157"><a href="#cb25-157" aria-hidden="true" tabindex="-1"></a>daylight and weather, not consumption.</span>
-<span id="cb25-158"><a href="#cb25-158" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-161"><a href="#cb25-161" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
-<span id="cb25-162"><a href="#cb25-162" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">11</span>, <span class="fl">3.0</span>))</span>
-<span id="cb25-163"><a href="#cb25-163" aria-hidden="true" tabindex="-1"></a>frame.groupby(frame.index.hour)[config.TARGET_COL].mean().plot(ax<span class="op">=</span>axes[<span class="dv">0</span>], marker<span class="op">=</span><span class="st">&quot;o&quot;</span>, title<span class="op">=</span><span class="st">&quot;By hour of day&quot;</span>)</span>
-<span id="cb25-164"><a href="#cb25-164" aria-hidden="true" tabindex="-1"></a>frame.groupby(frame.index.dayofweek)[config.TARGET_COL].mean().plot(ax<span class="op">=</span>axes[<span class="dv">1</span>], marker<span class="op">=</span><span class="st">&quot;o&quot;</span>, title<span class="op">=</span><span class="st">&quot;By day of week&quot;</span>)</span>
-<span id="cb25-165"><a href="#cb25-165" aria-hidden="true" tabindex="-1"></a>frame.groupby(frame.index.month)[config.TARGET_COL].mean().plot(ax<span class="op">=</span>axes[<span class="dv">2</span>], marker<span class="op">=</span><span class="st">&quot;o&quot;</span>, title<span class="op">=</span><span class="st">&quot;By month&quot;</span>)</span>
-<span id="cb25-166"><a href="#cb25-166" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
-<span id="cb25-167"><a href="#cb25-167" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
-<span id="cb25-168"><a href="#cb25-168" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb25-169"><a href="#cb25-169" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-170"><a href="#cb25-170" aria-hidden="true" tabindex="-1"></a>A single evening peak (~8-9pm, ~7,300 MW) and overnight trough (~3-4am,</span>
-<span id="cb25-171"><a href="#cb25-171" aria-hidden="true" tabindex="-1"></a>~5,450 MW) — a cleaner single-peak daily shape than this project&#39;s</span>
-<span id="cb25-172"><a href="#cb25-172" aria-hidden="true" tabindex="-1"></a>original US version, which had a secondary morning bump. The monthly</span>
-<span id="cb25-173"><a href="#cb25-173" aria-hidden="true" tabindex="-1"></a>pattern is **winter-dominant, not bimodal**: demand peaks in</span>
-<span id="cb25-174"><a href="#cb25-174" aria-hidden="true" tabindex="-1"></a>January/February and troughs in May, with much less of a summer</span>
-<span id="cb25-175"><a href="#cb25-175" aria-hidden="true" tabindex="-1"></a>cooling bump than the US version showed — consistent with Romania&#39;s</span>
-<span id="cb25-176"><a href="#cb25-176" aria-hidden="true" tabindex="-1"></a>historically lower AC penetration.</span>
-<span id="cb25-177"><a href="#cb25-177" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-180"><a href="#cb25-180" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
-<span id="cb25-181"><a href="#cb25-181" aria-hidden="true" tabindex="-1"></a>renewable_share <span class="op">=</span> frame[config.RENEWABLE_COLS].<span class="bu">sum</span>(axis<span class="op">=</span><span class="dv">1</span>) <span class="op">/</span> frame[<span class="st">&quot;Production&quot;</span>]</span>
-<span id="cb25-182"><a href="#cb25-182" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="fl">3.0</span>))</span>
-<span id="cb25-183"><a href="#cb25-183" aria-hidden="true" tabindex="-1"></a>renewable_share.groupby(frame.index.year).mean().plot.bar(ax<span class="op">=</span>axes[<span class="dv">0</span>], title<span class="op">=</span><span class="st">&quot;Renewable share of production, by year&quot;</span>, color<span class="op">=</span>PALETTE[<span class="dv">0</span>])</span>
-<span id="cb25-184"><a href="#cb25-184" aria-hidden="true" tabindex="-1"></a>frame.groupby(frame.index.year)[<span class="st">&quot;Solar&quot;</span>].mean().plot.bar(ax<span class="op">=</span>axes[<span class="dv">1</span>], title<span class="op">=</span><span class="st">&quot;Mean solar output (MW), by year&quot;</span>, color<span class="op">=</span>PALETTE[<span class="dv">3</span>])</span>
-<span id="cb25-185"><a href="#cb25-185" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
-<span id="cb25-186"><a href="#cb25-186" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
-<span id="cb25-187"><a href="#cb25-187" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb25-188"><a href="#cb25-188" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-189"><a href="#cb25-189" aria-hidden="true" tabindex="-1"></a>The clearest &quot;genuinely useful and interesting&quot; finding from having the</span>
-<span id="cb25-190"><a href="#cb25-190" aria-hidden="true" tabindex="-1"></a>generation-mix breakdown at all: renewable share has held around</span>
-<span id="cb25-191"><a href="#cb25-191" aria-hidden="true" tabindex="-1"></a>40-48% of production every year since 2019, but **mean solar output</span>
-<span id="cb25-192"><a href="#cb25-192" aria-hidden="true" tabindex="-1"></a>roughly doubled between 2023 (~168 MW) and 2025 (~319 MW)** — a real,</span>
-<span id="cb25-193"><a href="#cb25-193" aria-hidden="true" tabindex="-1"></a>checkable signature of Romania&#39;s recent solar buildout.</span>
-<span id="cb25-194"><a href="#cb25-194" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-195"><a href="#cb25-195" aria-hidden="true" tabindex="-1"></a><span class="fu">## Statistical rigor before modeling</span></span>
-<span id="cb25-196"><a href="#cb25-196" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-197"><a href="#cb25-197" aria-hidden="true" tabindex="-1"></a><span class="fu">### Is this series stationary?</span></span>
-<span id="cb25-198"><a href="#cb25-198" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-201"><a href="#cb25-201" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
-<span id="cb25-202"><a href="#cb25-202" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> energy_demand_forecasting <span class="im">import</span> model</span>
-<span id="cb25-203"><a href="#cb25-203" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-204"><a href="#cb25-204" aria-hidden="true" tabindex="-1"></a>adf_result <span class="op">=</span> model.stationarity_test(frame[config.TARGET_COL])</span>
-<span id="cb25-205"><a href="#cb25-205" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;ADF statistic: </span><span class="sc">{</span>adf_result[<span class="st">&#39;statistic&#39;</span>]<span class="sc">:.2f}</span><span class="ss">, p-value: </span><span class="sc">{</span>adf_result[<span class="st">&#39;p_value&#39;</span>]<span class="sc">:.4g}</span><span class="ss">&quot;</span>)</span>
-<span id="cb25-206"><a href="#cb25-206" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb25-207"><a href="#cb25-207" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-208"><a href="#cb25-208" aria-hidden="true" tabindex="-1"></a>Formally stationary (no unit root) — which looked wrong to me at first</span>
-<span id="cb25-209"><a href="#cb25-209" aria-hidden="true" tabindex="-1"></a>given the obvious daily/monthly patterns above. The resolution: ADF</span>
-<span id="cb25-210"><a href="#cb25-210" aria-hidden="true" tabindex="-1"></a>specifically tests for a *stochastic trend*, not for seasonality. A</span>
-<span id="cb25-211"><a href="#cb25-211" aria-hidden="true" tabindex="-1"></a>strong, bounded, repeating pattern always reverts toward its typical</span>
-<span id="cb25-212"><a href="#cb25-212" aria-hidden="true" tabindex="-1"></a>shape rather than wandering further from it, so it doesn&#39;t have a unit</span>
-<span id="cb25-213"><a href="#cb25-213" aria-hidden="true" tabindex="-1"></a>root even though it clearly isn&#39;t &quot;flat.&quot;</span>
-<span id="cb25-214"><a href="#cb25-214" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-215"><a href="#cb25-215" aria-hidden="true" tabindex="-1"></a><span class="fu">### Autocorrelation, used to justify lag choices empirically</span></span>
-<span id="cb25-216"><a href="#cb25-216" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-219"><a href="#cb25-219" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
-<span id="cb25-220"><a href="#cb25-220" aria-hidden="true" tabindex="-1"></a>acf_values <span class="op">=</span> model.autocorrelation(frame[config.TARGET_COL], n_lags<span class="op">=</span><span class="dv">200</span>)</span>
-<span id="cb25-221"><a href="#cb25-221" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="fl">3.0</span>))</span>
-<span id="cb25-222"><a href="#cb25-222" aria-hidden="true" tabindex="-1"></a>ax.stem(<span class="bu">range</span>(<span class="bu">len</span>(acf_values)), acf_values, markerfmt<span class="op">=</span><span class="st">&quot; &quot;</span>, basefmt<span class="op">=</span><span class="st">&quot; &quot;</span>)</span>
-<span id="cb25-223"><a href="#cb25-223" aria-hidden="true" tabindex="-1"></a>ax.axvline(<span class="dv">24</span>, linestyle<span class="op">=</span><span class="st">&quot;--&quot;</span>, color<span class="op">=</span><span class="st">&quot;gray&quot;</span>, label<span class="op">=</span><span class="st">&quot;24h&quot;</span>)</span>
-<span id="cb25-224"><a href="#cb25-224" aria-hidden="true" tabindex="-1"></a>ax.axvline(<span class="dv">168</span>, linestyle<span class="op">=</span><span class="st">&quot;--&quot;</span>, color<span class="op">=</span>PALETTE[<span class="dv">3</span>], label<span class="op">=</span><span class="st">&quot;168h&quot;</span>)</span>
-<span id="cb25-225"><a href="#cb25-225" aria-hidden="true" tabindex="-1"></a>ax.legend()</span>
-<span id="cb25-226"><a href="#cb25-226" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
-<span id="cb25-227"><a href="#cb25-227" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> lag <span class="kw">in</span> [<span class="dv">1</span>, <span class="dv">24</span>, <span class="dv">48</span>, <span class="dv">168</span>]:</span>
-<span id="cb25-228"><a href="#cb25-228" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;ACF at lag </span><span class="sc">{</span>lag<span class="sc">}</span><span class="ss">h: </span><span class="sc">{</span>acf_values[lag]<span class="sc">:.4f}</span><span class="ss">&quot;</span>)</span>
-<span id="cb25-229"><a href="#cb25-229" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb25-230"><a href="#cb25-230" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-231"><a href="#cb25-231" aria-hidden="true" tabindex="-1"></a>Autocorrelation is genuinely high at both 24h (0.83) and 168h (0.87 —</span>
-<span id="cb25-232"><a href="#cb25-232" aria-hidden="true" tabindex="-1"></a>if anything slightly stronger), with a noticeably weaker mid-point at</span>
-<span id="cb25-233"><a href="#cb25-233" aria-hidden="true" tabindex="-1"></a>48h (0.70) — empirical justification for these two specific lags,</span>
-<span id="cb25-234"><a href="#cb25-234" aria-hidden="true" tabindex="-1"></a>rather than picking them by convention.</span>
-<span id="cb25-235"><a href="#cb25-235" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-236"><a href="#cb25-236" aria-hidden="true" tabindex="-1"></a><span class="fu">## Feature engineering</span></span>
-<span id="cb25-237"><a href="#cb25-237" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-238"><a href="#cb25-238" aria-hidden="true" tabindex="-1"></a><span class="fu">### The leakage trap in the generation-mix columns</span></span>
-<span id="cb25-239"><a href="#cb25-239" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-240"><a href="#cb25-240" aria-hidden="true" tabindex="-1"></a><span class="in">`Production`</span> and its 7 source breakdowns are recorded at the **same</span>
-<span id="cb25-241"><a href="#cb25-241" aria-hidden="true" tabindex="-1"></a>hour** as <span class="in">`Consumption`</span>, not before it. Using them directly would be</span>
-<span id="cb25-242"><a href="#cb25-242" aria-hidden="true" tabindex="-1"></a>circular for a real forecasting task, since generation is dispatched in</span>
-<span id="cb25-243"><a href="#cb25-243" aria-hidden="true" tabindex="-1"></a>response to demand, not fixed in advance. Every generation-mix feature</span>
-<span id="cb25-244"><a href="#cb25-244" aria-hidden="true" tabindex="-1"></a>is lagged by 24 hours.</span>
-<span id="cb25-245"><a href="#cb25-245" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-248"><a href="#cb25-248" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
-<span id="cb25-249"><a href="#cb25-249" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> energy_demand_forecasting <span class="im">import</span> features</span>
-<span id="cb25-250"><a href="#cb25-250" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-251"><a href="#cb25-251" aria-hidden="true" tabindex="-1"></a>seasonal_lookup <span class="op">=</span> features.fit_seasonal_lookup(frame[config.TARGET_COL].iloc[: <span class="bu">int</span>(<span class="bu">len</span>(frame) <span class="op">*</span> <span class="fl">0.85</span>)])</span>
-<span id="cb25-252"><a href="#cb25-252" aria-hidden="true" tabindex="-1"></a>X, y <span class="op">=</span> features.split_features_target(frame, seasonal_lookup<span class="op">=</span>seasonal_lookup)</span>
-<span id="cb25-253"><a href="#cb25-253" aria-hidden="true" tabindex="-1"></a>X[[<span class="st">&quot;lag_24h&quot;</span>, <span class="st">&quot;lag_168h&quot;</span>, <span class="st">&quot;Solar_lag_24h&quot;</span>, <span class="st">&quot;net_export_lag_24h&quot;</span>, <span class="st">&quot;renewable_share_lag_24h&quot;</span>]].tail(<span class="dv">3</span>)</span>
-<span id="cb25-254"><a href="#cb25-254" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb25-255"><a href="#cb25-255" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-256"><a href="#cb25-256" aria-hidden="true" tabindex="-1"></a><span class="fu">### A leakage-safe way to reuse a seasonal-decomposition idea</span></span>
-<span id="cb25-257"><a href="#cb25-257" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-258"><a href="#cb25-258" aria-hidden="true" tabindex="-1"></a>A natural next step is decomposing the series into trend/seasonal/</span>
-<span id="cb25-259"><a href="#cb25-259" aria-hidden="true" tabindex="-1"></a>residual components and adding them as features. Doing this the most</span>
-<span id="cb25-260"><a href="#cb25-260" aria-hidden="true" tabindex="-1"></a>direct way — fitting <span class="in">`statsmodels`</span>&#39; decomposition on the whole series</span>
-<span id="cb25-261"><a href="#cb25-261" aria-hidden="true" tabindex="-1"></a>before splitting — leaks: the trend component is a **centered** moving</span>
-<span id="cb25-262"><a href="#cb25-262" aria-hidden="true" tabindex="-1"></a>average using points both before *and after* each timestamp, so fitting</span>
-<span id="cb25-263"><a href="#cb25-263" aria-hidden="true" tabindex="-1"></a>it on the full series means training features are quietly built with</span>
-<span id="cb25-264"><a href="#cb25-264" aria-hidden="true" tabindex="-1"></a>future test-period information. <span class="in">`fit_seasonal_lookup`</span> fits the</span>
-<span id="cb25-265"><a href="#cb25-265" aria-hidden="true" tabindex="-1"></a>decomposition **only on the training split** and reuses just the</span>
-<span id="cb25-266"><a href="#cb25-266" aria-hidden="true" tabindex="-1"></a>strictly periodic seasonal component (24 fixed hour-of-day offsets,</span>
-<span id="cb25-267"><a href="#cb25-267" aria-hidden="true" tabindex="-1"></a>safe to reapply to any timestamp without recomputation).</span>
-<span id="cb25-268"><a href="#cb25-268" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-271"><a href="#cb25-271" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
-<span id="cb25-272"><a href="#cb25-272" aria-hidden="true" tabindex="-1"></a>X_train, X_test, y_train, y_test <span class="op">=</span> model.chronological_train_test_split(X, y)</span>
-<span id="cb25-273"><a href="#cb25-273" aria-hidden="true" tabindex="-1"></a>pipe_with <span class="op">=</span> model.build_pipeline(model.lightgbm_estimator())</span>
-<span id="cb25-274"><a href="#cb25-274" aria-hidden="true" tabindex="-1"></a>pipe_with.fit(X_train, y_train)</span>
-<span id="cb25-275"><a href="#cb25-275" aria-hidden="true" tabindex="-1"></a>scores_with <span class="op">=</span> model.regression_scores(y_test, pipe_with.predict(X_test))</span>
-<span id="cb25-276"><a href="#cb25-276" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-277"><a href="#cb25-277" aria-hidden="true" tabindex="-1"></a>X_without, y_without <span class="op">=</span> features.split_features_target(frame)</span>
-<span id="cb25-278"><a href="#cb25-278" aria-hidden="true" tabindex="-1"></a>X_train_wo, X_test_wo, y_train_wo, y_test_wo <span class="op">=</span> model.chronological_train_test_split(X_without, y_without)</span>
-<span id="cb25-279"><a href="#cb25-279" aria-hidden="true" tabindex="-1"></a>pipe_without <span class="op">=</span> model.build_pipeline(model.lightgbm_estimator())</span>
-<span id="cb25-280"><a href="#cb25-280" aria-hidden="true" tabindex="-1"></a>pipe_without.fit(X_train_wo, y_train_wo)</span>
-<span id="cb25-281"><a href="#cb25-281" aria-hidden="true" tabindex="-1"></a>scores_without <span class="op">=</span> model.regression_scores(y_test_wo, pipe_without.predict(X_test_wo))</span>
-<span id="cb25-282"><a href="#cb25-282" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-283"><a href="#cb25-283" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;WITH seasonal_24h:   &quot;</span>, {k: <span class="bu">round</span>(v, <span class="dv">4</span>) <span class="cf">for</span> k, v <span class="kw">in</span> scores_with.items()})</span>
-<span id="cb25-284"><a href="#cb25-284" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;WITHOUT seasonal_24h:&quot;</span>, {k: <span class="bu">round</span>(v, <span class="dv">4</span>) <span class="cf">for</span> k, v <span class="kw">in</span> scores_without.items()})</span>
-<span id="cb25-285"><a href="#cb25-285" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb25-286"><a href="#cb25-286" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-287"><a href="#cb25-287" aria-hidden="true" tabindex="-1"></a>An honest negative result: adding the seasonal-decomposition feature</span>
-<span id="cb25-288"><a href="#cb25-288" aria-hidden="true" tabindex="-1"></a>makes essentially no difference (identical MAPE to 4 decimal places).</span>
-<span id="cb25-289"><a href="#cb25-289" aria-hidden="true" tabindex="-1"></a>LightGBM&#39;s tree splits likely already extract everything useful from</span>
-<span id="cb25-290"><a href="#cb25-290" aria-hidden="true" tabindex="-1"></a>the cyclical <span class="in">`hour_sin`</span>/<span class="in">`hour_cos`</span> encoding plus the lag/rolling</span>
-<span id="cb25-291"><a href="#cb25-291" aria-hidden="true" tabindex="-1"></a>features — worth reporting the idea that didn&#39;t help, not only the</span>
-<span id="cb25-292"><a href="#cb25-292" aria-hidden="true" tabindex="-1"></a>ones that did.</span>
-<span id="cb25-293"><a href="#cb25-293" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-294"><a href="#cb25-294" aria-hidden="true" tabindex="-1"></a><span class="fu">## Methodology</span></span>
-<span id="cb25-295"><a href="#cb25-295" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-296"><a href="#cb25-296" aria-hidden="true" tabindex="-1"></a><span class="fu">### Why the train/test split is chronological, not shuffled</span></span>
-<span id="cb25-297"><a href="#cb25-297" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-298"><a href="#cb25-298" aria-hidden="true" tabindex="-1"></a>Lag and rolling-window features are built from each row&#39;s own recent</span>
-<span id="cb25-299"><a href="#cb25-299" aria-hidden="true" tabindex="-1"></a>past, so a random shuffle would leak near-future information into</span>
-<span id="cb25-300"><a href="#cb25-300" aria-hidden="true" tabindex="-1"></a>training rows sitting next to shuffled-in test rows. The split is by</span>
-<span id="cb25-301"><a href="#cb25-301" aria-hidden="true" tabindex="-1"></a>position along the time-sorted index (last 15% of hours as test), and</span>
-<span id="cb25-302"><a href="#cb25-302" aria-hidden="true" tabindex="-1"></a>cross-validation uses <span class="in">`TimeSeriesSplit`</span>, never <span class="in">`KFold`</span>.</span>
-<span id="cb25-303"><a href="#cb25-303" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-304"><a href="#cb25-304" aria-hidden="true" tabindex="-1"></a><span class="fu">### A naive baseline, measured before trusting any model</span></span>
-<span id="cb25-305"><a href="#cb25-305" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-308"><a href="#cb25-308" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
-<span id="cb25-309"><a href="#cb25-309" aria-hidden="true" tabindex="-1"></a>baseline_scores <span class="op">=</span> model.naive_seasonal_baseline(X_test_wo, y_test_wo)</span>
-<span id="cb25-310"><a href="#cb25-310" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>({k: <span class="bu">round</span>(v, <span class="dv">4</span>) <span class="cf">for</span> k, v <span class="kw">in</span> baseline_scores.items()})</span>
-<span id="cb25-311"><a href="#cb25-311" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb25-312"><a href="#cb25-312" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-313"><a href="#cb25-313" aria-hidden="true" tabindex="-1"></a>&quot;Same hour last week&quot; is off by **~7.8%** on average (MAPE) — note this</span>
-<span id="cb25-314"><a href="#cb25-314" aria-hidden="true" tabindex="-1"></a>test period includes some of the messy, interpolated 2024-2025 outage</span>
-<span id="cb25-315"><a href="#cb25-315" aria-hidden="true" tabindex="-1"></a>stretches, so this baseline is measured under harder conditions than</span>
-<span id="cb25-316"><a href="#cb25-316" aria-hidden="true" tabindex="-1"></a>2019-2023 alone would give.</span>
-<span id="cb25-317"><a href="#cb25-317" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-318"><a href="#cb25-318" aria-hidden="true" tabindex="-1"></a><span class="fu">### Model comparison, via TimeSeriesSplit</span></span>
-<span id="cb25-319"><a href="#cb25-319" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-322"><a href="#cb25-322" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
-<span id="cb25-323"><a href="#cb25-323" aria-hidden="true" tabindex="-1"></a>cv_results <span class="op">=</span> []</span>
-<span id="cb25-324"><a href="#cb25-324" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name, factory <span class="kw">in</span> model.MODEL_FACTORIES.items():</span>
-<span id="cb25-325"><a href="#cb25-325" aria-hidden="true" tabindex="-1"></a>    scores <span class="op">=</span> model.cross_validate_pipeline(X_without, y_without, estimator<span class="op">=</span>factory(), cv<span class="op">=</span><span class="dv">5</span>)</span>
-<span id="cb25-326"><a href="#cb25-326" aria-hidden="true" tabindex="-1"></a>    cv_results.append({<span class="st">&quot;model&quot;</span>: name, <span class="op">**</span>scores})</span>
-<span id="cb25-327"><a href="#cb25-327" aria-hidden="true" tabindex="-1"></a>cv_df <span class="op">=</span> pd.DataFrame(cv_results).sort_values(<span class="st">&quot;mape_mean&quot;</span>)</span>
-<span id="cb25-328"><a href="#cb25-328" aria-hidden="true" tabindex="-1"></a>cv_df[[<span class="st">&quot;model&quot;</span>, <span class="st">&quot;mae_mean&quot;</span>, <span class="st">&quot;rmse_mean&quot;</span>, <span class="st">&quot;mape_mean&quot;</span>, <span class="st">&quot;mape_std&quot;</span>]]</span>
-<span id="cb25-329"><a href="#cb25-329" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb25-330"><a href="#cb25-330" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-333"><a href="#cb25-333" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
-<span id="cb25-334"><a href="#cb25-334" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">6</span>, <span class="fl">3.2</span>))</span>
-<span id="cb25-335"><a href="#cb25-335" aria-hidden="true" tabindex="-1"></a>ax.barh(cv_df[<span class="st">&quot;model&quot;</span>], cv_df[<span class="st">&quot;mape_mean&quot;</span>], color<span class="op">=</span>PALETTE[<span class="dv">0</span>])</span>
-<span id="cb25-336"><a href="#cb25-336" aria-hidden="true" tabindex="-1"></a>ax.axvline(baseline_scores[<span class="st">&quot;mape&quot;</span>], linestyle<span class="op">=</span><span class="st">&quot;--&quot;</span>, color<span class="op">=</span><span class="st">&quot;gray&quot;</span>, label<span class="op">=</span><span class="st">&quot;naive baseline&quot;</span>)</span>
-<span id="cb25-337"><a href="#cb25-337" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">&quot;MAPE (5-fold TimeSeriesSplit mean)&quot;</span>)</span>
-<span id="cb25-338"><a href="#cb25-338" aria-hidden="true" tabindex="-1"></a>ax.legend()</span>
-<span id="cb25-339"><a href="#cb25-339" aria-hidden="true" tabindex="-1"></a>plt.gca().invert_yaxis()</span>
-<span id="cb25-340"><a href="#cb25-340" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
-<span id="cb25-341"><a href="#cb25-341" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb25-342"><a href="#cb25-342" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-343"><a href="#cb25-343" aria-hidden="true" tabindex="-1"></a>Every model clears the naive baseline by a wide margin, and **LightGBM</span>
-<span id="cb25-344"><a href="#cb25-344" aria-hidden="true" tabindex="-1"></a>wins clearly** — including against <span class="in">`MLP (neural network)`</span>, a</span>
-<span id="cb25-345"><a href="#cb25-345" aria-hidden="true" tabindex="-1"></a>lightweight feedforward net (<span class="in">`sklearn.neural_network.MLPRegressor`</span>,</span>
-<span id="cb25-346"><a href="#cb25-346" aria-hidden="true" tabindex="-1"></a>zero new dependencies) included specifically to test whether a neural</span>
-<span id="cb25-347"><a href="#cb25-347" aria-hidden="true" tabindex="-1"></a>approach earns its extra complexity here. It lands close to Random</span>
-<span id="cb25-348"><a href="#cb25-348" aria-hidden="true" tabindex="-1"></a>Forest, but neither catches LightGBM — a useful, concrete data point</span>
-<span id="cb25-349"><a href="#cb25-349" aria-hidden="true" tabindex="-1"></a>against reaching for a neural network on a tabular, feature-engineered</span>
-<span id="cb25-350"><a href="#cb25-350" aria-hidden="true" tabindex="-1"></a>version of this kind of problem.</span>
-<span id="cb25-351"><a href="#cb25-351" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-352"><a href="#cb25-352" aria-hidden="true" tabindex="-1"></a><span class="fu">## Final chronological holdout</span></span>
-<span id="cb25-353"><a href="#cb25-353" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-356"><a href="#cb25-356" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
-<span id="cb25-357"><a href="#cb25-357" aria-hidden="true" tabindex="-1"></a>final_pipeline <span class="op">=</span> model.train_pipeline(X_train_wo, y_train_wo, estimator<span class="op">=</span>model.lightgbm_estimator())</span>
-<span id="cb25-358"><a href="#cb25-358" aria-hidden="true" tabindex="-1"></a>test_preds <span class="op">=</span> final_pipeline.predict(X_test_wo)</span>
-<span id="cb25-359"><a href="#cb25-359" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>({k: <span class="bu">round</span>(v, <span class="dv">4</span>) <span class="cf">for</span> k, v <span class="kw">in</span> model.regression_scores(y_test_wo, test_preds).items()})</span>
-<span id="cb25-360"><a href="#cb25-360" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb25-361"><a href="#cb25-361" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-364"><a href="#cb25-364" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
-<span id="cb25-365"><a href="#cb25-365" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">9</span>, <span class="fl">3.2</span>))</span>
-<span id="cb25-366"><a href="#cb25-366" aria-hidden="true" tabindex="-1"></a>sample_start, sample_end <span class="op">=</span> <span class="st">&quot;2025-06-01&quot;</span>, <span class="st">&quot;2025-06-14&quot;</span></span>
-<span id="cb25-367"><a href="#cb25-367" aria-hidden="true" tabindex="-1"></a>y_test_wo.loc[sample_start:sample_end].plot(ax<span class="op">=</span>ax, label<span class="op">=</span><span class="st">&quot;Actual&quot;</span>, color<span class="op">=</span>PALETTE[<span class="dv">0</span>])</span>
-<span id="cb25-368"><a href="#cb25-368" aria-hidden="true" tabindex="-1"></a>pd.Series(test_preds, index<span class="op">=</span>y_test_wo.index).loc[sample_start:sample_end].plot(ax<span class="op">=</span>ax, label<span class="op">=</span><span class="st">&quot;Predicted&quot;</span>, linestyle<span class="op">=</span><span class="st">&quot;--&quot;</span>, color<span class="op">=</span>PALETTE[<span class="dv">3</span>])</span>
-<span id="cb25-369"><a href="#cb25-369" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">&quot;MW&quot;</span>)</span>
-<span id="cb25-370"><a href="#cb25-370" aria-hidden="true" tabindex="-1"></a>ax.legend()</span>
-<span id="cb25-371"><a href="#cb25-371" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
-<span id="cb25-372"><a href="#cb25-372" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb25-373"><a href="#cb25-373" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-374"><a href="#cb25-374" aria-hidden="true" tabindex="-1"></a><span class="fu">## Model interpretability</span></span>
-<span id="cb25-375"><a href="#cb25-375" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-378"><a href="#cb25-378" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
-<span id="cb25-379"><a href="#cb25-379" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> energy_demand_forecasting.interpretability <span class="im">import</span> compute_shap_values, top_shap_features</span>
-<span id="cb25-380"><a href="#cb25-380" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-381"><a href="#cb25-381" aria-hidden="true" tabindex="-1"></a>explanation, X_transformed <span class="op">=</span> compute_shap_values(final_pipeline, X_without, max_samples<span class="op">=</span><span class="dv">500</span>)</span>
-<span id="cb25-382"><a href="#cb25-382" aria-hidden="true" tabindex="-1"></a>top <span class="op">=</span> top_shap_features(explanation, top_n<span class="op">=</span><span class="dv">15</span>).sort_values(<span class="st">&quot;mean_abs_shap&quot;</span>)</span>
-<span id="cb25-383"><a href="#cb25-383" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-384"><a href="#cb25-384" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">6</span>, <span class="dv">6</span>))</span>
-<span id="cb25-385"><a href="#cb25-385" aria-hidden="true" tabindex="-1"></a>ax.barh(top[<span class="st">&quot;feature&quot;</span>], top[<span class="st">&quot;mean_abs_shap&quot;</span>], color<span class="op">=</span>PALETTE[<span class="dv">0</span>])</span>
-<span id="cb25-386"><a href="#cb25-386" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">&quot;Mean |SHAP value| (MW)&quot;</span>)</span>
-<span id="cb25-387"><a href="#cb25-387" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
-<span id="cb25-388"><a href="#cb25-388" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb25-389"><a href="#cb25-389" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-390"><a href="#cb25-390" aria-hidden="true" tabindex="-1"></a><span class="in">`lag_168h`</span> outranks <span class="in">`lag_24h`</span> here, matching the ACF finding above where</span>
-<span id="cb25-391"><a href="#cb25-391" aria-hidden="true" tabindex="-1"></a>the weekly echo was slightly stronger. The genuine surprise:</span>
-<span id="cb25-392"><a href="#cb25-392" aria-hidden="true" tabindex="-1"></a>**`Solar_lag_24h` lands in the top 10**, ahead of <span class="in">`is_holiday`</span>. I didn&#39;t</span>
-<span id="cb25-393"><a href="#cb25-393" aria-hidden="true" tabindex="-1"></a>expect yesterday&#39;s solar output to say much about today&#39;s demand</span>
-<span id="cb25-394"><a href="#cb25-394" aria-hidden="true" tabindex="-1"></a>directly — my best guess is that it&#39;s acting as an indirect proxy for</span>
-<span id="cb25-395"><a href="#cb25-395" aria-hidden="true" tabindex="-1"></a>season and weather, not that solar generation itself drives</span>
-<span id="cb25-396"><a href="#cb25-396" aria-hidden="true" tabindex="-1"></a>consumption. I&#39;d want more than a SHAP ranking alone before treating</span>
-<span id="cb25-397"><a href="#cb25-397" aria-hidden="true" tabindex="-1"></a>this as more than a proxy effect.</span>
-<span id="cb25-398"><a href="#cb25-398" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-399"><a href="#cb25-399" aria-hidden="true" tabindex="-1"></a><span class="fu">## Discussion: what this project can&#39;t do, and what a Vietnam version would need</span></span>
-<span id="cb25-400"><a href="#cb25-400" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-401"><a href="#cb25-401" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**This dataset is live and not fully reproducible.** Every number</span>
-<span id="cb25-402"><a href="#cb25-402" aria-hidden="true" tabindex="-1"></a>  above reflects one snapshot; a fresh download will add rows without</span>
-<span id="cb25-403"><a href="#cb25-403" aria-hidden="true" tabindex="-1"></a>  changing historical ones, but the exact row counts and test-set</span>
-<span id="cb25-404"><a href="#cb25-404" aria-hidden="true" tabindex="-1"></a>  contents quoted here are tied to this specific download.</span>
-<span id="cb25-405"><a href="#cb25-405" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**The 2024-2025 outage gaps are patched with a rough approximation.**</span>
-<span id="cb25-406"><a href="#cb25-406" aria-hidden="true" tabindex="-1"></a>  An 83-hour linear interpolation can&#39;t recover real demand swings for</span>
-<span id="cb25-407"><a href="#cb25-407" aria-hidden="true" tabindex="-1"></a>  that stretch — evaluation numbers touching that period are measured</span>
-<span id="cb25-408"><a href="#cb25-408" aria-hidden="true" tabindex="-1"></a>  on partly reconstructed, not fully real, data.</span>
-<span id="cb25-409"><a href="#cb25-409" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**No weather data** — the sharp winter-heating seasonality is only</span>
-<span id="cb25-410"><a href="#cb25-410" aria-hidden="true" tabindex="-1"></a>  seen through the calendar, never an actual temperature reading.</span>
-<span id="cb25-411"><a href="#cb25-411" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Different climate and market structure than Vietnam.** Romania&#39;s</span>
-<span id="cb25-412"><a href="#cb25-412" aria-hidden="true" tabindex="-1"></a>  winter-heating-dominant demand shape is close to the opposite of</span>
-<span id="cb25-413"><a href="#cb25-413" aria-hidden="true" tabindex="-1"></a>  Vietnam&#39;s likely summer-cooling-dominant shape. The *methodology*</span>
-<span id="cb25-414"><a href="#cb25-414" aria-hidden="true" tabindex="-1"></a>  transfers directly; the specific calendar, climate-driven</span>
-<span id="cb25-415"><a href="#cb25-415" aria-hidden="true" tabindex="-1"></a>  seasonality, and holiday structure would not.</span>
-<span id="cb25-416"><a href="#cb25-416" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**The renewable-share angle connects most directly to Vietnam&#39;s own</span>
-<span id="cb25-417"><a href="#cb25-417" aria-hidden="true" tabindex="-1"></a>  situation**: Vietnam&#39;s grid is going through its own fast solar and</span>
-<span id="cb25-418"><a href="#cb25-418" aria-hidden="true" tabindex="-1"></a>  wind buildout, with well-documented grid-stability and curtailment</span>
-<span id="cb25-419"><a href="#cb25-419" aria-hidden="true" tabindex="-1"></a>  challenges. A genuine Vietnam version of this analysis would need</span>
-<span id="cb25-420"><a href="#cb25-420" aria-hidden="true" tabindex="-1"></a>  Vietnam&#39;s own hourly generation-mix data, which I could not find in</span>
-<span id="cb25-421"><a href="#cb25-421" aria-hidden="true" tabindex="-1"></a>  public, granular form.</span>
-<span id="cb25-422"><a href="#cb25-422" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-423"><a href="#cb25-423" aria-hidden="true" tabindex="-1"></a><span class="fu">## Conclusion</span></span>
-<span id="cb25-424"><a href="#cb25-424" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-425"><a href="#cb25-425" aria-hidden="true" tabindex="-1"></a>Switching from a frozen US demand series to this live Romanian</span>
-<span id="cb25-426"><a href="#cb25-426" aria-hidden="true" tabindex="-1"></a>consumption-and-production dataset paid off in ways beyond just having</span>
-<span id="cb25-427"><a href="#cb25-427" aria-hidden="true" tabindex="-1"></a>more columns: it forced a genuine leakage-trap decision (lagging every</span>
-<span id="cb25-428"><a href="#cb25-428" aria-hidden="true" tabindex="-1"></a>generation-mix feature), surfaced a real, previously-unseen</span>
-<span id="cb25-429"><a href="#cb25-429" aria-hidden="true" tabindex="-1"></a>data-quality problem (multi-hour 2024-2025 outage gaps, structurally</span>
-<span id="cb25-430"><a href="#cb25-430" aria-hidden="true" tabindex="-1"></a>different from the DST issue), and gave two honest negative/surprising</span>
-<span id="cb25-431"><a href="#cb25-431" aria-hidden="true" tabindex="-1"></a>results worth reporting on their own terms — the seasonal-decomposition</span>
-<span id="cb25-432"><a href="#cb25-432" aria-hidden="true" tabindex="-1"></a>feature added nothing once properly leakage-checked, and yesterday&#39;s</span>
-<span id="cb25-433"><a href="#cb25-433" aria-hidden="true" tabindex="-1"></a>solar output ranks surprisingly high in the final model&#39;s own</span>
-<span id="cb25-434"><a href="#cb25-434" aria-hidden="true" tabindex="-1"></a>explanation of itself, for reasons I can guess at but haven&#39;t proven.</span>
-<span id="cb25-435"><a href="#cb25-435" aria-hidden="true" tabindex="-1"></a>LightGBM&#39;s win over both classical regression and a neural-network</span>
-<span id="cb25-436"><a href="#cb25-436" aria-hidden="true" tabindex="-1"></a>baseline held up on this dataset exactly as it did on the original US</span>
-<span id="cb25-437"><a href="#cb25-437" aria-hidden="true" tabindex="-1"></a>version — a second, independent piece of evidence that the highest</span>
-<span id="cb25-438"><a href="#cb25-438" aria-hidden="true" tabindex="-1"></a>common instinct (&quot;try a neural net&quot;) isn&#39;t automatically the right one</span>
-<span id="cb25-439"><a href="#cb25-439" aria-hidden="true" tabindex="-1"></a>for a tabular, well-feature-engineered forecasting problem like this.</span>
-</code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb25" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb25-1">---</span>
+<span id="cb25-2">title: &quot;Forecasting Electricity Demand&quot;</span>
+<span id="cb25-3">subtitle: &quot;A worked case study in time-series forecasting, with a real generation-mix leakage trap&quot;</span>
+<span id="cb25-4">author: &quot;Tran Nguyen Vu&quot;</span>
+<span id="cb25-5">date: today</span>
+<span id="cb25-6">format:</span>
+<span id="cb25-7">  html:</span>
+<span id="cb25-8">    theme:</span>
+<span id="cb25-9">      light: flatly</span>
+<span id="cb25-10">      dark: darkly</span>
+<span id="cb25-11">    css: styles.css</span>
+<span id="cb25-12">    toc: true</span>
+<span id="cb25-13">    toc-location: left</span>
+<span id="cb25-14">    toc-depth: 3</span>
+<span id="cb25-15">    number-sections: true</span>
+<span id="cb25-16">    code-fold: true</span>
+<span id="cb25-17">    code-tools: true</span>
+<span id="cb25-18">    code-copy: true</span>
+<span id="cb25-19">    title-block-banner: true</span>
+<span id="cb25-20">    fig-width: 7.5</span>
+<span id="cb25-21">    fig-height: 4.5</span>
+<span id="cb25-22">    embed-resources: true</span>
+<span id="cb25-23">    smooth-scroll: true</span>
+<span id="cb25-24">  pdf:</span>
+<span id="cb25-25">    toc: true</span>
+<span id="cb25-26">    number-sections: true</span>
+<span id="cb25-27">execute:</span>
+<span id="cb25-28">  echo: true</span>
+<span id="cb25-29">  warning: false</span>
+<span id="cb25-30">  message: false</span>
+<span id="cb25-31">jupyter: energy-demand-forecasting</span>
+<span id="cb25-32">---</span>
+<span id="cb25-33"></span>
+<span id="cb25-34">```{python}</span>
+<span id="cb25-35">#| echo: false</span>
+<span id="cb25-36">#| output: false</span>
+<span id="cb25-37">import sys</span>
+<span id="cb25-38">sys.path.insert(0, &quot;../src&quot;)</span>
+<span id="cb25-39"></span>
+<span id="cb25-40">import matplotlib.pyplot as plt</span>
+<span id="cb25-41">import pandas as pd</span>
+<span id="cb25-42">import seaborn as sns</span>
+<span id="cb25-43"></span>
+<span id="cb25-44">PALETTE = [&quot;#2c5cc5&quot;, &quot;#5b8def&quot;, &quot;#8fb4f2&quot;, &quot;#e07a5f&quot;, &quot;#81b29a&quot;]</span>
+<span id="cb25-45">sns.set_theme(style=&quot;whitegrid&quot;, font=&quot;sans-serif&quot;)</span>
+<span id="cb25-46">plt.rcParams.update({</span>
+<span id="cb25-47">    &quot;figure.dpi&quot;: 130,</span>
+<span id="cb25-48">    &quot;axes.spines.top&quot;: False,</span>
+<span id="cb25-49">    &quot;axes.spines.right&quot;: False,</span>
+<span id="cb25-50">    &quot;axes.titleweight&quot;: &quot;600&quot;,</span>
+<span id="cb25-51">    &quot;axes.titlesize&quot;: 13,</span>
+<span id="cb25-52">    &quot;axes.labelsize&quot;: 11,</span>
+<span id="cb25-53">})</span>
+<span id="cb25-54">```</span>
+<span id="cb25-55"></span>
+<span id="cb25-56">::: {.callout-tip}</span>
+<span id="cb25-57">## Interactive application</span>
+<span id="cb25-58">[Open the Streamlit app](https://energy-demand-forecasting.streamlit.app){target=&quot;_blank&quot;}</span>
+<span id="cb25-59">:::</span>
+<span id="cb25-60"></span>
+<span id="cb25-61">## Introduction</span>
+<span id="cb25-62"></span>
+<span id="cb25-63">This project predicts hourly electricity demand (`Consumption`,</span>
+<span id="cb25-64">megawatts) for Romania&#x27;s national grid, using published data from 2019</span>
+<span id="cb25-65">onward together with its generation mix (nuclear, wind, hydro, oil &amp;</span>
+<span id="cb25-66">gas, coal, solar, biomass). Demand is a **time series**: observations</span>
+<span id="cb25-67">are ordered in time, so evaluation must preserve that order to avoid</span>
+<span id="cb25-68">leaking future information into training.</span>
+<span id="cb25-69"></span>
+<span id="cb25-70">The generation-mix breakdown makes it possible to test whether recent</span>
+<span id="cb25-71">production patterns carry forecasting signal and to examine changes</span>
+<span id="cb25-72">in Romania&#x27;s renewable electricity production.</span>
+<span id="cb25-73"></span>
+<span id="cb25-74">One thing worth flagging upfront: **this dataset is live and</span>
+<span id="cb25-75">continuously updated** — checked directly, an earlier download had</span>
+<span id="cb25-76">46,002 rows through April 2024, the version used here has 62,810 rows</span>
+<span id="cb25-77">through March 2026, with older rows unchanged. Every number below</span>
+<span id="cb25-78">reflects one snapshot, not a fixed, versioned file.</span>
+<span id="cb25-79"></span>
+<span id="cb25-80">## Data</span>
+<span id="cb25-81"></span>
+<span id="cb25-82">```{python}</span>
+<span id="cb25-83">from energy_demand_forecasting import config, data</span>
+<span id="cb25-84"></span>
+<span id="cb25-85">df = data.load_raw()</span>
+<span id="cb25-86">print(f&quot;{len(df)} rows, {df[config.DATETIME_COL].min()} to {df[config.DATETIME_COL].max()}&quot;)</span>
+<span id="cb25-87">```</span>
+<span id="cb25-88"></span>
+<span id="cb25-89">### Two real data-quality issues — and they are not the same issue</span>
+<span id="cb25-90"></span>
+<span id="cb25-91">```{python}</span>
+<span id="cb25-92">dupes = df[df[config.DATETIME_COL].duplicated(keep=False)]</span>
+<span id="cb25-93">full_range = pd.date_range(df[config.DATETIME_COL].min(), df[config.DATETIME_COL].max(), freq=&quot;h&quot;)</span>
+<span id="cb25-94">missing = full_range.difference(df[config.DATETIME_COL])</span>
+<span id="cb25-95">print(f&quot;{len(dupes)} duplicate timestamps, {len(missing)} missing timestamps&quot;)</span>
+<span id="cb25-96"></span>
+<span id="cb25-97">gaps = data.gap_lengths(df)</span>
+<span id="cb25-98">print(f&quot;{len(gaps)} separate gaps, longest: {gaps.max()} hours&quot;)</span>
+<span id="cb25-99">```</span>
+<span id="cb25-100"></span>
+<span id="cb25-101">Every duplicate falls on an October date at **3am** local time,</span>
+<span id="cb25-102">consistent with the Daylight Saving Time fall-back in Romania&#x27;s</span>
+<span id="cb25-103">Eastern European time zone.</span>
+<span id="cb25-104">2019-2023 show exactly 1 missing hour per year (the spring-forward</span>
+<span id="cb25-105">gap). **2024-2025 are a completely different story**: a single gap of</span>
+<span id="cb25-106">**83 consecutive missing hours**, consistent with a real</span>
+<span id="cb25-107">reporting/scraping outage in whatever live feed this dataset&#x27;s</span>
+<span id="cb25-108">maintainer pulls from — not a calendar quirk. I fixed both the same</span>
+<span id="cb25-109">way (average duplicates, linearly interpolate gaps against a strictly</span>
+<span id="cb25-110">regular hourly index), but want to be upfront that interpolating an</span>
+<span id="cb25-111">83-hour gap is a much rougher approximation than the isolated 1-hour</span>
+<span id="cb25-112">DST gaps — there&#x27;s no way to recover 83 hours of real demand swings</span>
+<span id="cb25-113">from a straight line between two endpoints.</span>
+<span id="cb25-114"></span>
+<span id="cb25-115">```{python}</span>
+<span id="cb25-116">frame = data.load_clean_frame()</span>
+<span id="cb25-117">print(f&quot;{len(frame)} hours, strictly regular: {(frame.index.to_series().diff().dropna() == pd.Timedelta(hours=1)).all()}&quot;)</span>
+<span id="cb25-118">```</span>
+<span id="cb25-119"></span>
+<span id="cb25-120">### Exploring the series and its generation mix</span>
+<span id="cb25-121"></span>
+<span id="cb25-122">```{python}</span>
+<span id="cb25-123">fig, ax = plt.subplots(figsize=(9, 3.2))</span>
+<span id="cb25-124">frame[config.TARGET_COL].plot(ax=ax, linewidth=0.4, color=PALETTE[0])</span>
+<span id="cb25-125">ax.set_ylabel(&quot;MW&quot;)</span>
+<span id="cb25-126">plt.show()</span>
+<span id="cb25-127"></span>
+<span id="cb25-128">corr = frame.corr()</span>
+<span id="cb25-129">fig, ax = plt.subplots(figsize=(7, 5.5))</span>
+<span id="cb25-130">sns.heatmap(corr, annot=True, fmt=&quot;.2f&quot;, cmap=&quot;RdBu_r&quot;, center=0, ax=ax)</span>
+<span id="cb25-131">plt.show()</span>
+<span id="cb25-132">```</span>
+<span id="cb25-133"></span>
+<span id="cb25-134">`Consumption` correlates most with `Production` (0.69, as expected) and</span>
+<span id="cb25-135">the two dispatchable fossil sources, `Oil and Gas` (0.50) and `Coal`</span>
+<span id="cb25-136">(0.47) — the grid operator leans on fossil generation specifically to</span>
+<span id="cb25-137">follow demand swings. `Solar` is essentially uncorrelated with demand</span>
+<span id="cb25-138">(-0.05), which is exactly what I&#x27;d expect: solar output follows</span>
+<span id="cb25-139">daylight and weather, not consumption.</span>
+<span id="cb25-140"></span>
+<span id="cb25-141">```{python}</span>
+<span id="cb25-142">fig, axes = plt.subplots(1, 3, figsize=(11, 3.0))</span>
+<span id="cb25-143">frame.groupby(frame.index.hour)[config.TARGET_COL].mean().plot(ax=axes[0], marker=&quot;o&quot;, title=&quot;By hour of day&quot;)</span>
+<span id="cb25-144">frame.groupby(frame.index.dayofweek)[config.TARGET_COL].mean().plot(ax=axes[1], marker=&quot;o&quot;, title=&quot;By day of week&quot;)</span>
+<span id="cb25-145">frame.groupby(frame.index.month)[config.TARGET_COL].mean().plot(ax=axes[2], marker=&quot;o&quot;, title=&quot;By month&quot;)</span>
+<span id="cb25-146">plt.tight_layout()</span>
+<span id="cb25-147">plt.show()</span>
+<span id="cb25-148">```</span>
+<span id="cb25-149"></span>
+<span id="cb25-150">Demand has a single evening peak (~8-9pm, ~7,300 MW) and an</span>
+<span id="cb25-151">overnight trough (~3-4am, ~5,450 MW). The monthly pattern is</span>
+<span id="cb25-152">**winter-dominant**: demand peaks in January/February and troughs in</span>
+<span id="cb25-153">May, with a smaller summer cooling peak.</span>
+<span id="cb25-154"></span>
+<span id="cb25-155">```{python}</span>
+<span id="cb25-156">renewable_share = frame[config.RENEWABLE_COLS].sum(axis=1) / frame[&quot;Production&quot;]</span>
+<span id="cb25-157">fig, axes = plt.subplots(1, 2, figsize=(10, 3.0))</span>
+<span id="cb25-158">renewable_share.groupby(frame.index.year).mean().plot.bar(ax=axes[0], title=&quot;Renewable share of production, by year&quot;, color=PALETTE[0])</span>
+<span id="cb25-159">frame.groupby(frame.index.year)[&quot;Solar&quot;].mean().plot.bar(ax=axes[1], title=&quot;Mean solar output (MW), by year&quot;, color=PALETTE[3])</span>
+<span id="cb25-160">plt.tight_layout()</span>
+<span id="cb25-161">plt.show()</span>
+<span id="cb25-162">```</span>
+<span id="cb25-163"></span>
+<span id="cb25-164">The clearest &quot;genuinely useful and interesting&quot; finding from having the</span>
+<span id="cb25-165">generation-mix breakdown at all: renewable share has held around</span>
+<span id="cb25-166">40-48% of production every year since 2019, but **mean solar output</span>
+<span id="cb25-167">roughly doubled between 2023 (~168 MW) and 2025 (~319 MW)** — a real,</span>
+<span id="cb25-168">checkable signature of Romania&#x27;s recent solar buildout.</span>
+<span id="cb25-169"></span>
+<span id="cb25-170">## Statistical rigor before modeling</span>
+<span id="cb25-171"></span>
+<span id="cb25-172">### Is this series stationary?</span>
+<span id="cb25-173"></span>
+<span id="cb25-174">```{python}</span>
+<span id="cb25-175">from energy_demand_forecasting import model</span>
+<span id="cb25-176"></span>
+<span id="cb25-177">adf_result = model.stationarity_test(frame[config.TARGET_COL])</span>
+<span id="cb25-178">print(f&quot;ADF statistic: {adf_result[&#x27;statistic&#x27;]:.2f}, p-value: {adf_result[&#x27;p_value&#x27;]:.4g}&quot;)</span>
+<span id="cb25-179">```</span>
+<span id="cb25-180"></span>
+<span id="cb25-181">Formally stationary (no unit root) — which looked wrong to me at first</span>
+<span id="cb25-182">given the obvious daily/monthly patterns above. The resolution: ADF</span>
+<span id="cb25-183">specifically tests for a *stochastic trend*, not for seasonality. A</span>
+<span id="cb25-184">strong, bounded, repeating pattern always reverts toward its typical</span>
+<span id="cb25-185">shape rather than wandering further from it, so it doesn&#x27;t have a unit</span>
+<span id="cb25-186">root even though it clearly isn&#x27;t &quot;flat.&quot;</span>
+<span id="cb25-187"></span>
+<span id="cb25-188">### Autocorrelation, used to justify lag choices empirically</span>
+<span id="cb25-189"></span>
+<span id="cb25-190">```{python}</span>
+<span id="cb25-191">acf_values = model.autocorrelation(frame[config.TARGET_COL], n_lags=200)</span>
+<span id="cb25-192">fig, ax = plt.subplots(figsize=(8, 3.0))</span>
+<span id="cb25-193">ax.stem(range(len(acf_values)), acf_values, markerfmt=&quot; &quot;, basefmt=&quot; &quot;)</span>
+<span id="cb25-194">ax.axvline(24, linestyle=&quot;--&quot;, color=&quot;gray&quot;, label=&quot;24h&quot;)</span>
+<span id="cb25-195">ax.axvline(168, linestyle=&quot;--&quot;, color=PALETTE[3], label=&quot;168h&quot;)</span>
+<span id="cb25-196">ax.legend()</span>
+<span id="cb25-197">plt.show()</span>
+<span id="cb25-198">for lag in [1, 24, 48, 168]:</span>
+<span id="cb25-199">    print(f&quot;ACF at lag {lag}h: {acf_values[lag]:.4f}&quot;)</span>
+<span id="cb25-200">```</span>
+<span id="cb25-201"></span>
+<span id="cb25-202">Autocorrelation is genuinely high at both 24h (0.83) and 168h (0.87 —</span>
+<span id="cb25-203">if anything slightly stronger), with a noticeably weaker mid-point at</span>
+<span id="cb25-204">48h (0.70) — empirical justification for these two specific lags,</span>
+<span id="cb25-205">rather than picking them by convention.</span>
+<span id="cb25-206"></span>
+<span id="cb25-207">## Feature engineering</span>
+<span id="cb25-208"></span>
+<span id="cb25-209">### The leakage trap in the generation-mix columns</span>
+<span id="cb25-210"></span>
+<span id="cb25-211">`Production` and its 7 source breakdowns are recorded at the **same</span>
+<span id="cb25-212">hour** as `Consumption`, not before it. Using them directly would be</span>
+<span id="cb25-213">circular for a real forecasting task, since generation is dispatched in</span>
+<span id="cb25-214">response to demand, not fixed in advance. Every generation-mix feature</span>
+<span id="cb25-215">is lagged by 24 hours.</span>
+<span id="cb25-216"></span>
+<span id="cb25-217">```{python}</span>
+<span id="cb25-218">from energy_demand_forecasting import features</span>
+<span id="cb25-219"></span>
+<span id="cb25-220">seasonal_lookup = features.fit_seasonal_lookup(frame[config.TARGET_COL].iloc[: int(len(frame) * 0.85)])</span>
+<span id="cb25-221">X, y = features.split_features_target(frame, seasonal_lookup=seasonal_lookup)</span>
+<span id="cb25-222">X[[&quot;lag_24h&quot;, &quot;lag_168h&quot;, &quot;Solar_lag_24h&quot;, &quot;net_export_lag_24h&quot;, &quot;renewable_share_lag_24h&quot;]].tail(3)</span>
+<span id="cb25-223">```</span>
+<span id="cb25-224"></span>
+<span id="cb25-225">### A leakage-safe way to reuse a seasonal-decomposition idea</span>
+<span id="cb25-226"></span>
+<span id="cb25-227">A natural next step is decomposing the series into trend/seasonal/</span>
+<span id="cb25-228">residual components and adding them as features. Doing this the most</span>
+<span id="cb25-229">direct way — fitting `statsmodels`&#x27; decomposition on the whole series</span>
+<span id="cb25-230">before splitting — leaks: the trend component is a **centered** moving</span>
+<span id="cb25-231">average using points both before *and after* each timestamp, so fitting</span>
+<span id="cb25-232">it on the full series means training features are quietly built with</span>
+<span id="cb25-233">future test-period information. `fit_seasonal_lookup` fits the</span>
+<span id="cb25-234">decomposition **only on the training split** and reuses just the</span>
+<span id="cb25-235">strictly periodic seasonal component (24 fixed hour-of-day offsets,</span>
+<span id="cb25-236">safe to reapply to any timestamp without recomputation).</span>
+<span id="cb25-237"></span>
+<span id="cb25-238">```{python}</span>
+<span id="cb25-239">X_train, X_test, y_train, y_test = model.chronological_train_test_split(X, y)</span>
+<span id="cb25-240">pipe_with = model.build_pipeline(model.lightgbm_estimator())</span>
+<span id="cb25-241">pipe_with.fit(X_train, y_train)</span>
+<span id="cb25-242">scores_with = model.regression_scores(y_test, pipe_with.predict(X_test))</span>
+<span id="cb25-243"></span>
+<span id="cb25-244">X_without, y_without = features.split_features_target(frame)</span>
+<span id="cb25-245">X_train_wo, X_test_wo, y_train_wo, y_test_wo = model.chronological_train_test_split(X_without, y_without)</span>
+<span id="cb25-246">pipe_without = model.build_pipeline(model.lightgbm_estimator())</span>
+<span id="cb25-247">pipe_without.fit(X_train_wo, y_train_wo)</span>
+<span id="cb25-248">scores_without = model.regression_scores(y_test_wo, pipe_without.predict(X_test_wo))</span>
+<span id="cb25-249"></span>
+<span id="cb25-250">print(&quot;WITH seasonal_24h:   &quot;, {k: round(v, 4) for k, v in scores_with.items()})</span>
+<span id="cb25-251">print(&quot;WITHOUT seasonal_24h:&quot;, {k: round(v, 4) for k, v in scores_without.items()})</span>
+<span id="cb25-252">```</span>
+<span id="cb25-253"></span>
+<span id="cb25-254">An honest negative result: adding the seasonal-decomposition feature</span>
+<span id="cb25-255">makes essentially no difference (identical MAPE to 4 decimal places).</span>
+<span id="cb25-256">LightGBM&#x27;s tree splits likely already extract everything useful from</span>
+<span id="cb25-257">the cyclical `hour_sin`/`hour_cos` encoding plus the lag/rolling</span>
+<span id="cb25-258">features — worth reporting the idea that didn&#x27;t help, not only the</span>
+<span id="cb25-259">ones that did.</span>
+<span id="cb25-260"></span>
+<span id="cb25-261">## Methodology</span>
+<span id="cb25-262"></span>
+<span id="cb25-263">### Why the train/test split is chronological, not shuffled</span>
+<span id="cb25-264"></span>
+<span id="cb25-265">Lag and rolling-window features are built from each row&#x27;s own recent</span>
+<span id="cb25-266">past, so a random shuffle would leak near-future information into</span>
+<span id="cb25-267">training rows sitting next to shuffled-in test rows. The split is by</span>
+<span id="cb25-268">position along the time-sorted index (last 15% of hours as test), and</span>
+<span id="cb25-269">cross-validation uses `TimeSeriesSplit`, never `KFold`.</span>
+<span id="cb25-270"></span>
+<span id="cb25-271">### A naive baseline, measured before trusting any model</span>
+<span id="cb25-272"></span>
+<span id="cb25-273">```{python}</span>
+<span id="cb25-274">baseline_scores = model.naive_seasonal_baseline(X_test_wo, y_test_wo)</span>
+<span id="cb25-275">print({k: round(v, 4) for k, v in baseline_scores.items()})</span>
+<span id="cb25-276">```</span>
+<span id="cb25-277"></span>
+<span id="cb25-278">&quot;Same hour last week&quot; is off by **~7.8%** on average (MAPE) — note this</span>
+<span id="cb25-279">test period includes some of the messy, interpolated 2024-2025 outage</span>
+<span id="cb25-280">stretches, so this baseline is measured under harder conditions than</span>
+<span id="cb25-281">2019-2023 alone would give.</span>
+<span id="cb25-282"></span>
+<span id="cb25-283">### Model comparison, via TimeSeriesSplit</span>
+<span id="cb25-284"></span>
+<span id="cb25-285">```{python}</span>
+<span id="cb25-286">cv_results = []</span>
+<span id="cb25-287">for name, factory in model.MODEL_FACTORIES.items():</span>
+<span id="cb25-288">    scores = model.cross_validate_pipeline(X_without, y_without, estimator=factory(), cv=5)</span>
+<span id="cb25-289">    cv_results.append({&quot;model&quot;: name, **scores})</span>
+<span id="cb25-290">cv_df = pd.DataFrame(cv_results).sort_values(&quot;mape_mean&quot;)</span>
+<span id="cb25-291">cv_df[[&quot;model&quot;, &quot;mae_mean&quot;, &quot;rmse_mean&quot;, &quot;mape_mean&quot;, &quot;mape_std&quot;]]</span>
+<span id="cb25-292">```</span>
+<span id="cb25-293"></span>
+<span id="cb25-294">```{python}</span>
+<span id="cb25-295">fig, ax = plt.subplots(figsize=(6, 3.2))</span>
+<span id="cb25-296">ax.barh(cv_df[&quot;model&quot;], cv_df[&quot;mape_mean&quot;], color=PALETTE[0])</span>
+<span id="cb25-297">ax.axvline(baseline_scores[&quot;mape&quot;], linestyle=&quot;--&quot;, color=&quot;gray&quot;, label=&quot;naive baseline&quot;)</span>
+<span id="cb25-298">ax.set_xlabel(&quot;MAPE (5-fold TimeSeriesSplit mean)&quot;)</span>
+<span id="cb25-299">ax.legend()</span>
+<span id="cb25-300">plt.gca().invert_yaxis()</span>
+<span id="cb25-301">plt.show()</span>
+<span id="cb25-302">```</span>
+<span id="cb25-303"></span>
+<span id="cb25-304">Every model clears the naive baseline by a wide margin, and **LightGBM</span>
+<span id="cb25-305">wins clearly** — including against `MLP (neural network)`, a</span>
+<span id="cb25-306">lightweight feedforward net (`sklearn.neural_network.MLPRegressor`,</span>
+<span id="cb25-307">zero new dependencies) included specifically to test whether a neural</span>
+<span id="cb25-308">approach earns its extra complexity here. It lands close to Random</span>
+<span id="cb25-309">Forest, but neither catches LightGBM — a useful, concrete data point</span>
+<span id="cb25-310">against reaching for a neural network on a tabular, feature-engineered</span>
+<span id="cb25-311">version of this kind of problem.</span>
+<span id="cb25-312"></span>
+<span id="cb25-313">## Final chronological holdout</span>
+<span id="cb25-314"></span>
+<span id="cb25-315">```{python}</span>
+<span id="cb25-316">final_pipeline = model.train_pipeline(X_train_wo, y_train_wo, estimator=model.lightgbm_estimator())</span>
+<span id="cb25-317">test_preds = final_pipeline.predict(X_test_wo)</span>
+<span id="cb25-318">print({k: round(v, 4) for k, v in model.regression_scores(y_test_wo, test_preds).items()})</span>
+<span id="cb25-319">```</span>
+<span id="cb25-320"></span>
+<span id="cb25-321">```{python}</span>
+<span id="cb25-322">fig, ax = plt.subplots(figsize=(9, 3.2))</span>
+<span id="cb25-323">sample_start, sample_end = &quot;2025-06-01&quot;, &quot;2025-06-14&quot;</span>
+<span id="cb25-324">y_test_wo.loc[sample_start:sample_end].plot(ax=ax, label=&quot;Actual&quot;, color=PALETTE[0])</span>
+<span id="cb25-325">pd.Series(test_preds, index=y_test_wo.index).loc[sample_start:sample_end].plot(ax=ax, label=&quot;Predicted&quot;, linestyle=&quot;--&quot;, color=PALETTE[3])</span>
+<span id="cb25-326">ax.set_ylabel(&quot;MW&quot;)</span>
+<span id="cb25-327">ax.legend()</span>
+<span id="cb25-328">plt.show()</span>
+<span id="cb25-329">```</span>
+<span id="cb25-330"></span>
+<span id="cb25-331">## Model interpretability</span>
+<span id="cb25-332"></span>
+<span id="cb25-333">```{python}</span>
+<span id="cb25-334">from energy_demand_forecasting.interpretability import compute_shap_values, top_shap_features</span>
+<span id="cb25-335"></span>
+<span id="cb25-336">explanation, X_transformed = compute_shap_values(final_pipeline, X_without, max_samples=500)</span>
+<span id="cb25-337">top = top_shap_features(explanation, top_n=15).sort_values(&quot;mean_abs_shap&quot;)</span>
+<span id="cb25-338"></span>
+<span id="cb25-339">fig, ax = plt.subplots(figsize=(6, 6))</span>
+<span id="cb25-340">ax.barh(top[&quot;feature&quot;], top[&quot;mean_abs_shap&quot;], color=PALETTE[0])</span>
+<span id="cb25-341">ax.set_xlabel(&quot;Mean |SHAP value| (MW)&quot;)</span>
+<span id="cb25-342">plt.show()</span>
+<span id="cb25-343">```</span>
+<span id="cb25-344"></span>
+<span id="cb25-345">`lag_168h` outranks `lag_24h` here, matching the ACF finding above where</span>
+<span id="cb25-346">the weekly echo was slightly stronger. The genuine surprise:</span>
+<span id="cb25-347">**`Solar_lag_24h` lands in the top 10**, ahead of `is_holiday`. I didn&#x27;t</span>
+<span id="cb25-348">expect yesterday&#x27;s solar output to say much about today&#x27;s demand</span>
+<span id="cb25-349">directly — my best guess is that it&#x27;s acting as an indirect proxy for</span>
+<span id="cb25-350">season and weather, not that solar generation itself drives</span>
+<span id="cb25-351">consumption. I&#x27;d want more than a SHAP ranking alone before treating</span>
+<span id="cb25-352">this as more than a proxy effect.</span>
+<span id="cb25-353"></span>
+<span id="cb25-354">## Discussion: limitations and future work</span>
+<span id="cb25-355"></span>
+<span id="cb25-356">- **This dataset is live and not fully reproducible.** Every number</span>
+<span id="cb25-357">  above reflects one snapshot; a fresh download adds rows, so the</span>
+<span id="cb25-358">  quoted row counts and test-set contents are tied to this download.</span>
+<span id="cb25-359">- **Outage gaps require approximate reconstruction.** An 83-hour</span>
+<span id="cb25-360">  linear interpolation cannot recover real demand swings. Evaluation</span>
+<span id="cb25-361">  touching these gaps uses partly reconstructed observations.</span>
+<span id="cb25-362">- **Weather is not observed directly.** Calendar features capture</span>
+<span id="cb25-363">  seasonal patterns but cannot represent individual temperature</span>
+<span id="cb25-364">  changes. Adding weather observations could improve forecasts.</span>
+<span id="cb25-365">- **Results apply to Romania&#x27;s grid and the evaluated period.**</span>
+<span id="cb25-366">  Changes in demand, generation capacity, or market conditions may</span>
+<span id="cb25-367">  require retraining and renewed chronological evaluation.</span>
+<span id="cb25-368">- **The role of lagged solar output needs further investigation.**</span>
+<span id="cb25-369">  Its SHAP ranking suggests predictive value but does not establish</span>
+<span id="cb25-370">  a causal relationship with consumption.</span>
+<span id="cb25-371"></span>
+<span id="cb25-372">## Conclusion</span>
+<span id="cb25-373"></span>
+<span id="cb25-374">Romania&#x27;s hourly consumption-and-production data supports demand</span>
+<span id="cb25-375">forecasting while exposing practical modeling challenges: generation</span>
+<span id="cb25-376">features must be lagged to avoid leakage, and multi-hour outage gaps</span>
+<span id="cb25-377">need to be distinguished from routine DST artifacts.</span>
+<span id="cb25-378"></span>
+<span id="cb25-379">LightGBM outperformed the regression, Random Forest, and neural-network</span>
+<span id="cb25-380">baselines in this evaluation. The seasonal-decomposition feature added</span>
+<span id="cb25-381">no measurable benefit after leakage checks, while yesterday&#x27;s solar</span>
+<span id="cb25-382">output ranked highly in the model explanation. These findings support</span>
+<span id="cb25-383">the value of chronological evaluation, explicit baselines, and careful</span>
+<span id="cb25-384">feature engineering, while leaving the solar proxy effect as an open</span>
+<span id="cb25-385">question.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
 
